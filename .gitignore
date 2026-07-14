@@ -1,0 +1,45 @@
+*.tar
+*.tar.gz
+*.zip
+venv*/
+envs/
+slurm_logs/
+
+__pycache__
+*.log
+*.pyc
+.vscode
+debug/
+*.ipynb
+.idea
+*.egg-info/
+
+# vscode history
+.history
+
+.DS_Store
+.env
+
+bad_words/
+bak/
+
+app/tests/*
+temp/
+tmp/
+tmp
+.vscode
+.vscode/
+ocr_demo
+.coveragerc
+/app/common/__init__.py
+source.dev.env
+
+tmp
+
+# sphinx docs
+_build/
+
+# monkeyocr
+output/
+build/
+model_weight
