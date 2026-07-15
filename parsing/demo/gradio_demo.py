@@ -3,6 +3,7 @@ import base64
 import json
 import os
 import re
+import shutil
 import sys
 import time
 import uuid
@@ -133,6 +134,7 @@ def create_session_state():
     return {
         "id": f"{time.strftime('%Y%m%d_%H%M%S')}_{uuid.uuid4().hex[:8]}",
         "file_path": None,
+        "run_dir": None,
         "pdf_cache": {
             "images": [],
             "current_page": 0,
@@ -170,6 +172,47 @@ def _load_pdf_preview_pages(pdf_path: str):
 
 def _load_image_preview(image_path: str):
     return Image.open(image_path).convert("RGB")
+
+
+def _relative_to_output_dir(path: str | Path, output_dir: str | Path) -> str:
+    path = Path(path).resolve()
+    output_dir = Path(output_dir).expanduser().resolve()
+    try:
+        return str(path.relative_to(output_dir))
+    except ValueError:
+        return str(path)
+
+
+def _create_run_dir(file_path, session_state, output_dir=DEFAULT_OUTPUT_DIR):
+    src = Path(file_path)
+    session_state["id"] = f"{time.strftime('%Y%m%d_%H%M%S')}_{uuid.uuid4().hex[:8]}"
+    run_name = f"{session_state['id']}_{src.stem}"
+    run_dir = Path(output_dir).expanduser().resolve() / run_name
+    run_dir.mkdir(parents=True, exist_ok=True)
+    session_state["run_dir"] = str(run_dir)
+    return run_dir
+
+
+def _copy_input_to_run_dir(file_path, session_state, output_dir=DEFAULT_OUTPUT_DIR, new_run=False):
+    if not file_path:
+        return None
+
+    src = Path(file_path).resolve()
+    if not src.exists():
+        return None
+
+    run_dir = Path(session_state["run_dir"]).resolve() if session_state.get("run_dir") else None
+    if new_run or run_dir is None:
+        run_dir = _create_run_dir(src, session_state, output_dir)
+
+    dst = run_dir / src.name
+    if src != dst.resolve():
+        if dst.exists():
+            dst = run_dir / f"{src.stem}_{uuid.uuid4().hex[:8]}{src.suffix}"
+        shutil.copy2(src, dst)
+
+    session_state["file_path"] = str(dst)
+    return str(dst)
 
 
 def _load_example_preview(file_path: str, max_size=(260, 180)):
@@ -225,7 +268,7 @@ def preview_example(example_name):
     return _load_example_preview(file_path)
 
 
-def choose_example(example_name, session_state):
+def choose_example(example_name, session_state, output_dir=DEFAULT_OUTPUT_DIR):
     if not example_name:
         return None, _page_info(), session_state
 
@@ -233,11 +276,13 @@ def choose_example(example_name, session_state):
     if not file_path:
         return None, _page_info(), session_state
 
-    return _preview_file(file_path, session_state)
+    saved_path = _copy_input_to_run_dir(file_path, session_state, output_dir, new_run=True)
+    return _preview_file(saved_path, session_state)
 
 
-def load_uploaded_file(file_path, session_state):
-    preview_image, page_info, session_state = _preview_file(file_path, session_state)
+def load_uploaded_file(file_path, session_state, output_dir=DEFAULT_OUTPUT_DIR):
+    saved_path = _copy_input_to_run_dir(file_path, session_state, output_dir, new_run=True)
+    preview_image, page_info, session_state = _preview_file(saved_path, session_state)
     return preview_image, page_info, session_state, gr.update(value=None), None
 
 
@@ -329,6 +374,7 @@ def parse_file(
     output_dir=DEFAULT_OUTPUT_DIR,
 ):
     file_path = session_state.get("file_path") or file_path
+    file_path = _copy_input_to_run_dir(file_path, session_state, output_dir) or file_path
 
     if file_path is None:
         md_preview_ltr, md_preview_rtl = _markdown_preview_updates("Please upload a PDF or image first.")
@@ -354,11 +400,8 @@ def parse_file(
 
     api = PARSE_API
     input_path = Path(file_path)
-    if not session_state.get("id"):
-        session_state["id"] = f"{time.strftime('%Y%m%d_%H%M%S')}_{uuid.uuid4().hex[:8]}"
     session_state["file_path"] = file_path
-    run_name = f"{session_state['id']}_{input_path.stem}_{time.strftime('%H%M%S')}"
-    run_dir = Path(output_dir).expanduser().resolve() / run_name
+    run_dir = Path(session_state["run_dir"]).resolve() if session_state.get("run_dir") else _create_run_dir(input_path, session_state, output_dir)
     json_dir = run_dir / "jsons"
     md_dir = run_dir / "markdowns"
     image_dir = run_dir / "images"
@@ -415,9 +458,10 @@ def parse_file(
         api["build_result_record"](doc, res)
         for doc, res in zip(docs, results)
     ]
+    for record in result_records:
+        record["image_path"] = _relative_to_output_dir(record["image_path"], output_dir)
 
     for name, record in zip(names, result_records):
-        record['image_path'] = record['image_path'].replace('/data/zzy/MonkeyOCRv2/parsing/demo/', '')
         (json_dir / f"{name}.json").write_text(
             json.dumps(record, ensure_ascii=False, indent=1),
             encoding="utf-8",
@@ -454,6 +498,7 @@ def parse_file(
 def clear_all(session_state):
     session_state["id"] = f"{time.strftime('%Y%m%d_%H%M%S')}_{uuid.uuid4().hex[:8]}"
     session_state["file_path"] = None
+    session_state["run_dir"] = None
     _reset_page_cache(session_state)
     md_preview_ltr, md_preview_rtl = _markdown_preview_updates(INITIAL_MARKDOWN)
     return (
@@ -567,7 +612,11 @@ def create_gradio_app(default_model_path=DEFAULT_MODEL_PATH, default_output_dir=
                     json_download = gr.DownloadButton("Download JSON", visible=True)
 
         file_input.upload(
-            fn=load_uploaded_file,
+            fn=lambda file_path, state: load_uploaded_file(
+                file_path,
+                state,
+                output_dir=default_output_dir,
+            ),
             inputs=[file_input, session_state],
             outputs=[file_preview, page_info, session_state, example_dropdown, example_preview],
         )
@@ -579,7 +628,11 @@ def create_gradio_app(default_model_path=DEFAULT_MODEL_PATH, default_output_dir=
         )
 
         choose_example_button.click(
-            fn=choose_example,
+            fn=lambda example_name, state: choose_example(
+                example_name,
+                state,
+                output_dir=default_output_dir,
+            ),
             inputs=[example_dropdown, session_state],
             outputs=[file_preview, page_info, session_state],
         )
