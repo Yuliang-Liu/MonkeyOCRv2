@@ -299,7 +299,7 @@ async def parse_document_internal(file: UploadFile):
             download_url=f"/static/{run_id}/{zip_path.name}",
         )
     except Exception as exc:
-        raise HTTPException(status_code=500, detail=str(exc)) from exc
+        raise HTTPException(status_code=500, detail="Internal server error.") from exc
 
 
 def make_run_id(filename: str, suffix: str = "") -> str:
