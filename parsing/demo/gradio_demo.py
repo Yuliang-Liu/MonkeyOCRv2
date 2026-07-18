@@ -1,13 +1,13 @@
 import argparse
+import atexit
 import base64
 import json
-import os
 import re
 import shutil
 import sys
+import threading
 import time
 import uuid
-import zipfile
 from pathlib import Path
 
 import gradio as gr
@@ -26,15 +26,16 @@ EXAMPLE_EXTS = IMAGE_EXTS | {".pdf"}
 
 
 try:
-    from parse import (
-        modeling_monkeyocrv2_vllm,
-        MonkeyOCRv2_Parsing,
-        Preprocessor,
-        _load_input_documents,
-        parse_images,
-        parse_images_e2e,
-        result2md,
-        build_result_record,
+    from core_runner import (
+        BackendConfig,
+        PipelineConfig,
+        DEFAULT_BACKEND_MANAGER,
+        load_all_results,
+        load_markdowns,
+        open_oriented_image,
+        run_pipeline,
+        run_single_task_recognition,
+        zip_dir,
     )
 except ModuleNotFoundError as exc:
     raise gr.Error(
@@ -42,18 +43,8 @@ except ModuleNotFoundError as exc:
         "Please run this demo in the environment used by parsing/parse.py."
     ) from exc
 
-PARSE_API = {
-    "Preprocessor": Preprocessor,
-    "MonkeyOCRv2_Parsing": MonkeyOCRv2_Parsing,
-    "_load_input_documents": _load_input_documents,
-    "parse_images": parse_images,
-    "parse_images_e2e": parse_images_e2e,
-    "result2md": result2md,
-    "build_result_record": build_result_record,
-}
-
-
-MODEL_CACHE = {}
+PIPELINE_LOCK = threading.Lock()
+atexit.register(DEFAULT_BACKEND_MANAGER.close)
 
 
 def _list_examples():
@@ -171,7 +162,7 @@ def _load_pdf_preview_pages(pdf_path: str):
 
 
 def _load_image_preview(image_path: str):
-    return Image.open(image_path).convert("RGB")
+    return open_oriented_image(image_path).convert("RGB")
 
 
 def _relative_to_output_dir(path: str | Path, output_dir: str | Path) -> str:
@@ -230,7 +221,7 @@ def _load_example_preview(file_path: str, max_size=(260, 180)):
         bmp = page.render(scale=100 / 72)
         image = bmp.to_pil().convert("RGB")
     else:
-        image = Image.open(file_path).convert("RGB")
+        image = open_oriented_image(file_path).convert("RGB")
 
     image.thumbnail(max_size, Image.LANCZOS)
     return image
@@ -300,25 +291,6 @@ def turn_page(direction, session_state):
     return cache["images"][idx], _page_info(idx + 1, cache["total_pages"]), session_state
 
 
-def _get_model(model_path: str, tp: int):
-    api = PARSE_API
-    key = (str(Path(model_path).resolve()), int(tp))
-    if key not in MODEL_CACHE:
-        MODEL_CACHE.clear()
-        MODEL_CACHE[key] = {
-            "preprocessor": api["Preprocessor"](model_path),
-            "model": api["MonkeyOCRv2_Parsing"](model_path, tp=tp),
-        }
-    return MODEL_CACHE[key]["preprocessor"], MODEL_CACHE[key]["model"]
-
-
-def _zip_dir(src_dir: Path, zip_path: Path):
-    with zipfile.ZipFile(zip_path, "w", zipfile.ZIP_DEFLATED) as zipf:
-        for path in src_dir.rglob("*"):
-            if path.is_file() and path != zip_path:
-                zipf.write(path, path.relative_to(src_dir))
-
-
 def _markdown_for_preview(md_text: str, md_dir: Path) -> str:
     def replace_image_with_base64(match):
         alt_text = match.group(1)
@@ -372,6 +344,16 @@ def parse_file(
     keep_header_footer,
     model_path=DEFAULT_MODEL_PATH,
     output_dir=DEFAULT_OUTPUT_DIR,
+    server_url="",
+    served_model_name="MonkeyOCRv2",
+    request_timeout=300,
+    http_max_retries=5,
+    http_retry_backoff=1.0,
+    server_max_inflight=1024,
+    page_max_inflight=16,
+    preprocess_batch_size=8,
+    skip_preprocess=False,
+    end2end=False,
 ):
     file_path = session_state.get("file_path") or file_path
     file_path = _copy_input_to_run_dir(file_path, session_state, output_dir) or file_path
@@ -393,93 +375,146 @@ def parse_file(
 
     start = time.time()
     tp = 1
-    end2end = False
-    use_preprocessor = True
-    use_repeat_retry = True
-    os.environ["MOCR2_MAX_PIXELS"] = "1003520"
-
-    api = PARSE_API
     input_path = Path(file_path)
+    if input_path.suffix.lower() not in EXAMPLE_EXTS:
+        raise gr.Error("Unsupported file type. Please upload PDF or image files.")
     session_state["file_path"] = file_path
     run_dir = Path(session_state["run_dir"]).resolve() if session_state.get("run_dir") else _create_run_dir(input_path, session_state, output_dir)
-    json_dir = run_dir / "jsons"
-    md_dir = run_dir / "markdowns"
-    image_dir = run_dir / "images"
-
-    json_dir.mkdir(parents=True, exist_ok=True)
-    md_dir.mkdir(parents=True, exist_ok=True)
-    image_dir.mkdir(parents=True, exist_ok=True)
-
-    preprocessor, model = _get_model(model_path, tp)
-
-    docs = api["_load_input_documents"](str(input_path))
-    if not docs:
-        raise gr.Error("Unsupported file type. Please upload PDF or image files.")
-
-    if use_preprocessor:
-        docs = preprocessor.preprocess_docs(docs)
-
-    all_images = []
-    pdf_pages = []
-    names = []
-    for doc in docs:
-        all_images.extend(doc["images"])
-        pdf_pages.append(doc["pdf_pages"])
-        names.append(doc["name"])
-
-    if end2end:
-        results, layouts = api["parse_images_e2e"](
-            model,
-            all_images,
-            pdf_pages,
-            return_layouts=True,
-            enable_repeat_retry=use_repeat_retry,
-        )
-    else:
-        results, layouts = api["parse_images"](
-            model,
-            all_images,
-            pdf_pages,
-            return_layouts=True,
-            doc_names=names,
+    result_info = run_pipeline(
+        PipelineConfig(
+            input_path=str(input_path),
+            output_path=str(run_dir),
+            backend=BackendConfig(
+                model_path=model_path,
+                server_url=server_url,
+                served_model_name=served_model_name,
+                tp=tp,
+                max_pixels=1003520,
+                request_timeout=request_timeout,
+                http_max_retries=http_max_retries,
+                http_retry_backoff=http_retry_backoff,
+                server_max_inflight=server_max_inflight,
+                preprocess_batch_size=preprocess_batch_size,
+                skip_preprocess=skip_preprocess,
+            ),
+            page_max_inflight=page_max_inflight,
+            draw_layout=False,
+            end2end=end2end,
+            skip_processed=False,
+            retry_repeat=True,
+            retry_repeat_max_retries=3,
+            keep_header_footer=keep_header_footer,
             use_base64=False,
-            image_dir=image_dir,
-            enable_repeat_retry=use_repeat_retry,
-        )
-
-    markdowns = api["result2md"](
-        names,
-        results,
-        save_dir=str(md_dir),
-        keep_header_footer=keep_header_footer,
+        ),
+        backend_manager=DEFAULT_BACKEND_MANAGER,
+        parse_semaphore=PIPELINE_LOCK,
     )
+    md_dir = result_info["md_dir"]
 
-    result_records = [
-        api["build_result_record"](doc, res)
-        for doc, res in zip(docs, results)
-    ]
-    for record in result_records:
-        record["image_path"] = _relative_to_output_dir(record["image_path"], output_dir)
-
-    for name, record in zip(names, result_records):
-        (json_dir / f"{name}.json").write_text(
-            json.dumps(record, ensure_ascii=False, indent=1),
+    result_records = load_all_results(run_dir)
+    all_results_path = result_info["all_results_path"]
+    if result_records:
+        for record in result_records:
+            record["image_path"] = _relative_to_output_dir(record.get("image_path", ""), output_dir)
+        all_results_path.write_text(
+            json.dumps(result_records, ensure_ascii=False, indent=1),
             encoding="utf-8",
         )
-    (run_dir / "all_results.json").write_text(
-        json.dumps(result_records, ensure_ascii=False, indent=1),
-        encoding="utf-8",
-    )
+
+    markdowns = load_markdowns(md_dir)
 
     zip_path = run_dir / f"{input_path.stem}_results.zip"
-    _zip_dir(run_dir, zip_path)
+    zip_dir(run_dir, zip_path)
 
     preview_image, page_info, session_state = _preview_file(file_path, session_state)
 
     md_text = markdowns[0] if markdowns else ""
     md_preview = _markdown_for_preview(md_text, md_dir)
     elapsed = time.time() - start
-    status = f"Parsed {len(docs)} document(s) in {elapsed:.2f}s. Results saved to {run_dir}"
+    status = f"Parsed {max(1, len(result_records))} document(s) in {elapsed:.2f}s. Results saved to {run_dir}"
+    md_preview_ltr, md_preview_rtl = _markdown_preview_updates(md_preview or status, md_text)
+
+    return (
+        preview_image,
+        md_preview_ltr,
+        md_preview_rtl,
+        md_text or status,
+        page_info,
+        gr.update(value=str(zip_path), visible=True),
+        gr.update(value=str(run_dir / "all_results.json"), visible=True),
+        session_state,
+    )
+
+
+def recognize_single_task(
+    file_path,
+    session_state,
+    task_label,
+    model_path=DEFAULT_MODEL_PATH,
+    output_dir=DEFAULT_OUTPUT_DIR,
+    server_url="",
+    served_model_name="MonkeyOCRv2",
+    request_timeout=300,
+    http_max_retries=5,
+    http_retry_backoff=1.0,
+    server_max_inflight=1024,
+    preprocess_batch_size=8,
+):
+    file_path = session_state.get("file_path") or file_path
+    file_path = _copy_input_to_run_dir(file_path, session_state, output_dir) or file_path
+
+    if file_path is None:
+        md_preview_ltr, md_preview_rtl = _markdown_preview_updates("Please upload a PDF or image first.")
+        return (
+            gr.update(),
+            md_preview_ltr,
+            md_preview_rtl,
+            "Please upload a PDF or image first.",
+            _page_info(),
+            gr.update(value=None),
+            gr.update(value=None),
+            session_state,
+        )
+
+    task = (task_label or "Text").strip().lower()
+    input_path = Path(file_path)
+    if input_path.suffix.lower() not in EXAMPLE_EXTS:
+        raise gr.Error("Unsupported file type. Please upload PDF or image files.")
+
+    session_state["file_path"] = file_path
+    run_dir = Path(session_state["run_dir"]).resolve() if session_state.get("run_dir") else _create_run_dir(input_path, session_state, output_dir)
+    result_info = run_single_task_recognition(
+        str(input_path),
+        str(run_dir),
+        task,
+        BackendConfig(
+            model_path=model_path,
+            server_url=server_url,
+            served_model_name=served_model_name,
+            tp=1,
+            max_pixels=1003520,
+            request_timeout=request_timeout,
+            http_max_retries=http_max_retries,
+            http_retry_backoff=http_retry_backoff,
+            server_max_inflight=server_max_inflight,
+            preprocess_batch_size=preprocess_batch_size,
+            skip_preprocess=True,
+        ),
+        backend_manager=DEFAULT_BACKEND_MANAGER,
+        parse_semaphore=PIPELINE_LOCK,
+    )
+
+    markdowns = load_markdowns(result_info["md_dir"])
+    zip_path = run_dir / f"{input_path.stem}_{task}_result.zip"
+    zip_dir(run_dir, zip_path)
+    preview_image, page_info, session_state = _preview_file(file_path, session_state)
+
+    md_text = markdowns[0] if markdowns else ""
+    md_preview = _markdown_for_preview(md_text, result_info["md_dir"])
+    status = (
+        f"Single task {task} recognition completed in {result_info['elapsed']:.2f}s. "
+        f"Results saved to {run_dir}"
+    )
     md_preview_ltr, md_preview_rtl = _markdown_preview_updates(md_preview or status, md_text)
     print(status)
 
@@ -490,7 +525,7 @@ def parse_file(
         md_text or status,
         page_info,
         gr.update(value=str(zip_path), visible=True),
-        gr.update(value=str(run_dir / "all_results.json"), visible=True),
+        gr.update(value=str(result_info["all_results_path"]), visible=True),
         session_state,
     )
 
@@ -516,7 +551,20 @@ def clear_all(session_state):
     )
 
 
-def create_gradio_app(default_model_path=DEFAULT_MODEL_PATH, default_output_dir=DEFAULT_OUTPUT_DIR):
+def create_gradio_app(
+    default_model_path=DEFAULT_MODEL_PATH,
+    default_output_dir=DEFAULT_OUTPUT_DIR,
+    server_url="",
+    served_model_name="MonkeyOCRv2",
+    request_timeout=300,
+    http_max_retries=5,
+    http_retry_backoff=1.0,
+    server_max_inflight=1024,
+    page_max_inflight=16,
+    preprocess_batch_size=8,
+    skip_preprocess=False,
+    end2end=False,
+):
     with gr.Blocks(title="MonkeyOCRv2-Parsing", theme="ocean", css=CSS) as demo:
         session_state = gr.State(create_session_state())
         initial_is_arabic = _contains_arabic(INITIAL_MARKDOWN)
@@ -556,7 +604,14 @@ def create_gradio_app(default_model_path=DEFAULT_MODEL_PATH, default_output_dir=
 
                 gr.Markdown("### Actions")
                 keep_header_footer = gr.Checkbox(label="Keep header/footer", value=False)
+                task_dropdown = gr.Dropdown(
+                    label="Choose Task",
+                    choices=["Text", "Formula", "Table"],
+                    value="Text",
+                    show_label=True,
+                )
                 parse_button = gr.Button("Parse", variant="primary")
+                single_task_button = gr.Button("Single Task Recognition", variant="secondary")
                 clear_button = gr.Button("Clear", variant="secondary")
 
             with gr.Column(scale=6, variant="compact"):
@@ -657,8 +712,39 @@ def create_gradio_app(default_model_path=DEFAULT_MODEL_PATH, default_output_dir=
                 keep_header_footer_value,
                 model_path=default_model_path,
                 output_dir=default_output_dir,
+                server_url=server_url,
+                served_model_name=served_model_name,
+                request_timeout=request_timeout,
+                http_max_retries=http_max_retries,
+                http_retry_backoff=http_retry_backoff,
+                server_max_inflight=server_max_inflight,
+                page_max_inflight=page_max_inflight,
+                preprocess_batch_size=preprocess_batch_size,
+                skip_preprocess=skip_preprocess,
+                end2end=end2end,
             ),
             inputs=[file_input, session_state, keep_header_footer],
+            outputs=[file_preview, md_view_ltr, md_view_rtl, md_raw, page_info, zip_download, json_download, session_state],
+            show_progress=True,
+            show_progress_on=[md_view_ltr, md_view_rtl, md_raw],
+        )
+
+        single_task_button.click(
+            fn=lambda file_path, state, task_value: recognize_single_task(
+                file_path,
+                state,
+                task_value,
+                model_path=default_model_path,
+                output_dir=default_output_dir,
+                server_url=server_url,
+                served_model_name=served_model_name,
+                request_timeout=request_timeout,
+                http_max_retries=http_max_retries,
+                http_retry_backoff=http_retry_backoff,
+                server_max_inflight=server_max_inflight,
+                preprocess_batch_size=preprocess_batch_size,
+            ),
+            inputs=[file_input, session_state, task_dropdown],
             outputs=[file_preview, md_view_ltr, md_view_rtl, md_raw, page_info, zip_download, json_download, session_state],
             show_progress=True,
             show_progress_on=[md_view_ltr, md_view_rtl, md_raw],
@@ -687,18 +773,41 @@ def create_gradio_app(default_model_path=DEFAULT_MODEL_PATH, default_output_dir=
 
 
 def main():
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--model-path", default=DEFAULT_MODEL_PATH)
-    parser.add_argument("--output-dir", default=DEFAULT_OUTPUT_DIR)
-    parser.add_argument("--server-name", default="0.0.0.0")
-    parser.add_argument("--server-port", type=int, default=8892)
-    parser.add_argument("--share", action="store_true")
+    parser = argparse.ArgumentParser(description="Start the MonkeyOCRv2 Gradio demo.")
+    parser.add_argument("--model-path", default=DEFAULT_MODEL_PATH, help="Path to the MonkeyOCRv2 model weights used by local Async engine and preprocessor.")
+    parser.add_argument("--output-dir", "-o", default=DEFAULT_OUTPUT_DIR, help="Directory where demo request outputs are saved.")
+    parser.add_argument("--server-url", "-s", dest="server_url", default="", help="vLLM OpenAI-compatible server URL, for example http://127.0.0.1:8888. If omitted, local AsyncLLMEngine is used.")
+    parser.add_argument("--served-model-name", default="MonkeyOCRv2", help="Model name exposed by vLLM serve.")
+    parser.add_argument("--request-timeout", type=int, default=300, help="HTTP request timeout in seconds when using vLLM serve.")
+    parser.add_argument("--http-max-retries", type=int, default=5, help="Maximum retries for transient vLLM server HTTP failures.")
+    parser.add_argument("--http-retry-backoff", type=float, default=1.0, help="Base exponential backoff seconds for transient vLLM server HTTP failures.")
+    parser.add_argument("--server-max-inflight", type=int, default=1024, help="Maximum in-flight model requests submitted by the demo process.")
+    parser.add_argument("--page-max-inflight", type=int, default=256, help="Maximum pages kept in the parsing pipeline at the same time.")
+    parser.add_argument("--preprocess-batch-size", type=int, default=32, help="Batch size used by the image preprocessor.")
+    parser.add_argument("--skip-preprocess", action="store_true", help="Skip image preprocessing before layout and recognition.")
+    parser.add_argument("--end2end", action="store_true", help="Use end-to-end parsing prompt instead of layout followed by block recognition.")
+    parser.add_argument("--demo-server-name", default="0.0.0.0", help="Host address for the Gradio demo server.")
+    parser.add_argument("--demo-server-port", "-p", type=int, default=8891, help="Port for the Gradio demo server.")
+    parser.add_argument("--share", action="store_true", help="Create a public Gradio share link.")
     args = parser.parse_args()
 
-    demo = create_gradio_app(args.model_path, args.output_dir)
+    demo = create_gradio_app(
+        args.model_path,
+        args.output_dir,
+        server_url=args.server_url,
+        served_model_name=args.served_model_name,
+        request_timeout=args.request_timeout,
+        http_max_retries=args.http_max_retries,
+        http_retry_backoff=args.http_retry_backoff,
+        server_max_inflight=args.server_max_inflight,
+        page_max_inflight=args.page_max_inflight,
+        preprocess_batch_size=args.preprocess_batch_size,
+        skip_preprocess=args.skip_preprocess,
+        end2end=args.end2end,
+    )
     demo.queue().launch(
-        server_name=args.server_name,
-        server_port=args.server_port,
+        server_name=args.demo_server_name,
+        server_port=args.demo_server_port,
         share=args.share,
         debug=True,
     )
