@@ -195,6 +195,7 @@ class MonkeyOCRv2_ServerParsing:
                     requests_exceptions.ConnectionError,
                     requests_exceptions.Timeout,
                     requests_exceptions.ChunkedEncodingError,
+                    requests_exceptions.SSLError,
                     requests_exceptions.HTTPError,
                 ) as exc:
                     last_exc = exc
