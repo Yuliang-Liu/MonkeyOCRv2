@@ -280,6 +280,14 @@ python demo/gradio_demo.py -h
 ```
 You can access the web demo at http://localhost:8891.
 
+##### 4.3 Serve with FastAPI
+```bash
+python fastapi/main.py -s http://127.0.0.1:8888 -p 8000
+# Show help messages
+python fastapi/main.py -h
+```
+You can access the API documentation at http://localhost:8000/docs to explore available endpoints.
+
 ### Document Understanding
 #### 1. Install
 See install part of MonkeyOCRv2.
