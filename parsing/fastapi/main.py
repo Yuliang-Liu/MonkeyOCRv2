@@ -294,7 +294,7 @@ async def parse_document_internal(file: UploadFile):
         return ParseResponse(
             success=True,
             message="Document parsed successfully.",
-            output_dir=str(run_dir),
+            output_dir=run_id,
             files=files,
             download_url=f"/static/{run_id}/{zip_path.name}",
         )
