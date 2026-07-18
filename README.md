@@ -262,6 +262,7 @@ You can parse documents using CLI or serve with demo and FastAPI.
 ##### 4.1 Parse using CLI
 Parse a single document or a directory containing PDFs or images:
 ```bash
+cd parsing
 python parse.py \
     -i ../images_test \
     -o output/test \
@@ -274,11 +275,21 @@ python parse.py -h
 
 ##### 4.2 Serve with Web Demo
 ```bash
+cd parsing
 python demo/gradio_demo.py -s http://127.0.0.1:8888 -p 8891
 # Show help messages
 python demo/gradio_demo.py -h
 ```
 You can access the web demo at http://localhost:8891.
+
+##### 4.3 Serve with FastAPI
+```bash
+cd parsing
+python fastapi/main.py -s http://127.0.0.1:8888 -p 8000
+# Show help messages
+python fastapi/main.py -h
+```
+You can access the API documentation at http://localhost:8000/docs to explore available endpoints.
 
 ### Document Understanding
 #### 1. Install
