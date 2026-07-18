@@ -248,7 +248,7 @@ python download_model.py -t modelscope -n MonkeyOCRv2-B-Parsing # or MonkeyOCRv2
 ```
 
 #### 3. vLLM Serving
-You should start a vLLM sevice before parsing documents:
+You should start a vLLM service before parsing documents:
 ```bash
 cd parsing
 python serve.py -m ../model_weight/MonkeyOCRv2-B-Parsing -p 8888
