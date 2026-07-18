@@ -35,7 +35,6 @@ def main():
     parser.add_argument("--served-model-name", default="MonkeyOCRv2")
     parser.add_argument("--host", default=None)
     parser.add_argument("--port", "-p", type=int, default=8888)
-    parser.add_argument("--trust-remote-code", action="store_true", default=True)
     parser.add_argument("extra_args", nargs=argparse.REMAINDER, help="Extra arguments passed to vLLM serve")
     args = parser.parse_args()
 
@@ -64,8 +63,7 @@ def main():
     ]
     if args.host:
         argv.extend(["--host", args.host])
-    if args.trust_remote_code:
-        argv.append("--trust-remote-code")
+    argv.append("--trust-remote-code")
     if args.extra_args:
         if args.extra_args[0] == "--":
             args.extra_args = args.extra_args[1:]
