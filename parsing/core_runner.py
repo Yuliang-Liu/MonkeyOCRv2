@@ -1203,7 +1203,7 @@ def load_image(image_url: Union[str, Path, Image.Image], max_pixels: int = None,
         if isinstance(image_url, Image.Image):
             pass
         elif image_source.startswith('http'):
-            response = requests.get(image_url, headers=headers, timeout=FETCH_TIMEOUT)
+            response = requests.get(image_source, headers=headers, timeout=FETCH_TIMEOUT)
             response.raise_for_status()
             img = Image.open(BytesIO(response.content))
             img = _apply_jpeg_orientation(img, image_source)
