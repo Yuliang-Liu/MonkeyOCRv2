@@ -254,7 +254,7 @@ async def perform_ocr_task(file: UploadFile, task_type: str):
         content = "\n\n".join(x.strip() for x in outputs if x is not None)
         return TaskResponse(success=True, task_type=task_type, content=content)
     except Exception as exc:
-        raise HTTPException(status_code=500, detail=str(exc)) from exc
+        raise HTTPException(status_code=500, detail="Internal server error.") from exc
 
 
 async def parse_document_internal(file: UploadFile):
