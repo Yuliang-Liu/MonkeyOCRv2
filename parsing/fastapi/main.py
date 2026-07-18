@@ -221,11 +221,6 @@ async def parse_document(file: UploadFile = File(...)):
     return await parse_document_internal(file)
 
 
-@app.post("/parse/split", response_model=ParseResponse)
-async def parse_document_split(file: UploadFile = File(...)):
-    return await parse_document_internal(file)
-
-
 async def perform_ocr_task(file: UploadFile, task_type: str):
     if task_type not in TASK_PROMPTS:
         raise HTTPException(status_code=400, detail=f"Unsupported OCR task: {task_type}")
