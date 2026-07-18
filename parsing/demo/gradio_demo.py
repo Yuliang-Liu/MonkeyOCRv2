@@ -206,6 +206,47 @@ def _copy_input_to_run_dir(file_path, session_state, output_dir=DEFAULT_OUTPUT_D
     return str(dst)
 
 
+def _relative_to_output_dir(path: str | Path, output_dir: str | Path) -> str:
+    path = Path(path).resolve()
+    output_dir = Path(output_dir).expanduser().resolve()
+    try:
+        return str(path.relative_to(output_dir))
+    except ValueError:
+        return str(path)
+
+
+def _create_run_dir(file_path, session_state, output_dir=DEFAULT_OUTPUT_DIR):
+    src = Path(file_path)
+    session_state["id"] = f"{time.strftime('%Y%m%d_%H%M%S')}_{uuid.uuid4().hex[:8]}"
+    run_name = f"{session_state['id']}_{src.stem}"
+    run_dir = Path(output_dir).expanduser().resolve() / run_name
+    run_dir.mkdir(parents=True, exist_ok=True)
+    session_state["run_dir"] = str(run_dir)
+    return run_dir
+
+
+def _copy_input_to_run_dir(file_path, session_state, output_dir=DEFAULT_OUTPUT_DIR, new_run=False):
+    if not file_path:
+        return None
+
+    src = Path(file_path).resolve()
+    if not src.exists():
+        return None
+
+    run_dir = Path(session_state["run_dir"]).resolve() if session_state.get("run_dir") else None
+    if new_run or run_dir is None:
+        run_dir = _create_run_dir(src, session_state, output_dir)
+
+    dst = run_dir / src.name
+    if src != dst.resolve():
+        if dst.exists():
+            dst = run_dir / f"{src.stem}_{uuid.uuid4().hex[:8]}{src.suffix}"
+        shutil.copy2(src, dst)
+
+    session_state["file_path"] = str(dst)
+    return str(dst)
+
+
 def _load_example_preview(file_path: str, max_size=(260, 180)):
     suffix = Path(file_path).suffix.lower()
     if suffix == ".pdf":
