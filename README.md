@@ -247,29 +247,38 @@ pip install modelscope
 python download_model.py -t modelscope -n MonkeyOCRv2-B-Parsing # or MonkeyOCRv2-S-Parsing
 ```
 
-#### 3. Inference
-Parse a single document or a directory containing PDFs or images:
+#### 3. vLLM Serving
+You should start a vLLM service before parsing documents:
 ```bash
 cd parsing
+python serve.py -m ../model_weight/MonkeyOCRv2-B-Parsing -p 8888
+# Show help messages
+python serve.py -h
+```
+
+#### 4. Inference
+You can parse documents using CLI or serve with demo and FastAPI.
+
+##### 4.1 Parse using CLI
+Parse a single document or a directory containing PDFs or images:
+```bash
 python parse.py \
-    -i ../images_test/ar.JPEG \
+    -i ../images_test \
     -o output/test \
-    -m ../model_weight/MonkeyOCRv2-B-Parsing \
-    -g 500 \
+    -s http://127.0.0.1:8888 \
     --draw-layout \
     --skip-processed
 # Show help messages
 python parse.py -h
 ```
 
-#### 4. Web Demo
-Start gradio web demo:
+##### 4.2 Serve with Web Demo
 ```bash
-cd parsing
-python demo/gradio_demo.py \
-    --model-path ../model_weight/MonkeyOCRv2-B-Parsing \
-    --output-dir output/demo_outputs
+python demo/gradio_demo.py -s http://127.0.0.1:8888 -p 8891
+# Show help messages
+python demo/gradio_demo.py -h
 ```
+You can access the web demo at http://localhost:8891.
 
 ### Document Understanding
 #### 1. Install
