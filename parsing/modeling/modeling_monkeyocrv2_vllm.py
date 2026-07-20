@@ -10,13 +10,19 @@ from torch.nn import LayerNorm
 from transformers.models.qwen2_vl import Qwen2VLProcessor
 
 from vllm import ModelRegistry
-from vllm.attention.backends.registry import AttentionBackendEnum
-from vllm.attention.layer import (
-    check_upstream_fa_availability,
-    maybe_get_vit_flash_attn_backend,
-)
+from vllm.v1.attention.backends.registry import AttentionBackendEnum
 from vllm.config import VllmConfig
 from vllm.config.multimodal import BaseDummyOptions
+from vllm.model_executor.models.vision import get_vit_attn_backend as _get_vit_attn_backend
+
+def get_vit_attn_backend(head_size, dtype, attn_backend_override=None):
+    return _get_vit_attn_backend(head_size=head_size, dtype=dtype)
+
+def check_upstream_fa_availability(dtype):
+    return False
+
+def maybe_get_vit_flash_attn_backend(attn_backend, use_upstream_fa, attn_backend_override=None):
+    return AttentionBackendEnum.TORCH_SDPA, None
 from vllm.distributed import utils as dist_utils
 from vllm.distributed.parallel_state import (
     get_tensor_model_parallel_rank,
@@ -34,6 +40,8 @@ from vllm.model_executor.layers.quantization import QuantizationConfig
 from vllm.model_executor.model_loader.weight_utils import default_weight_loader
 from vllm.model_executor.models.interfaces import (
     MultiModalEmbeddings,
+    SupportsEagle,
+    SupportsEagle3,
     SupportsLoRA,
     SupportsMultiModal,
     SupportsPP,
@@ -52,9 +60,8 @@ from vllm.model_executor.models.utils import (
     init_vllm_registered_model,
     maybe_prefix,
 )
-from vllm.model_executor.models.vision import get_vit_attn_backend
 from vllm.multimodal import MULTIMODAL_REGISTRY
-from vllm.multimodal.inputs import MultiModalDataDict
+from vllm.inputs import MultiModalDataDict
 from vllm.sequence import IntermediateTensors
 from vllm.utils.tensor_schema import TensorSchema, TensorShape
 
@@ -364,7 +371,7 @@ class MonkeyOCRv2VisionAttention(nn.Module):
         if self.attn_backend not in {
             AttentionBackendEnum.FLASH_ATTN,
             AttentionBackendEnum.TORCH_SDPA,
-            AttentionBackendEnum.XFORMERS,
+            getattr(AttentionBackendEnum, "XFORMERS", AttentionBackendEnum.TORCH_SDPA),
             AttentionBackendEnum.ROCM_AITER_FA,
         }:
             raise RuntimeError(
@@ -432,7 +439,7 @@ class MonkeyOCRv2VisionAttention(nn.Module):
                 out_i = out_i.permute(0, 2, 1, 3)
                 outputs.append(out_i)
             context_layer = torch.cat(outputs, dim=1) if outputs else q[:, :0]
-        elif self.attn_backend == AttentionBackendEnum.XFORMERS:
+        elif self.attn_backend == getattr(AttentionBackendEnum, "XFORMERS", AttentionBackendEnum.TORCH_SDPA):
             from xformers import ops as xops
             from xformers.ops.fmha.attn_bias import BlockDiagonalMask
 
@@ -731,7 +738,7 @@ class MonkeyOCRv2VisionTransformer(nn.Module):
             or self.attn_backend == AttentionBackendEnum.ROCM_AITER_FA
         ):
             max_seqlen = (cu_seqlens[1:] - cu_seqlens[:-1]).max().item()
-        elif self.attn_backend == AttentionBackendEnum.XFORMERS:
+        elif self.attn_backend == getattr(AttentionBackendEnum, "XFORMERS", AttentionBackendEnum.TORCH_SDPA):
             seqlens = (cu_seqlens[1:] - cu_seqlens[:-1]).tolist()
         return max_seqlen, seqlens
 
@@ -775,7 +782,7 @@ class MonkeyOCRv2VisionTransformer(nn.Module):
     info=MonkeyOCRv2ProcessingInfo,
     dummy_inputs=MonkeyOCRv2DummyInputsBuilder,
 )
-class MonkeyOCRv2ForCausalLM(nn.Module, SupportsMultiModal, SupportsPP, SupportsLoRA):
+class MonkeyOCRv2ForCausalLM(nn.Module, SupportsMultiModal, SupportsPP, SupportsLoRA, SupportsEagle, SupportsEagle3):
     merge_by_field_config = True
 
     hf_to_vllm_mapper = WeightsMapper(

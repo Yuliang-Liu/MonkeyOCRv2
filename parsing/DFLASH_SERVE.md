@@ -7,8 +7,8 @@ in `core_runner.py` or `fastapi/main.py`.
 ## 1. Install the matching vLLM build
 
 The stock vLLM package does not include the MonkeyOCRv2 DFlash model adapter.
-Build a DFlash-enabled vLLM fork from the same upstream `vLLM==0.11.2` revision
-used by this repository. The fork needs the DFlash scheduler/speculator changes
+Use a DFlash-enabled vLLM build that is API-compatible with the current
+MonkeyOCRv2 model plugin. The build needs the DFlash scheduler/speculator changes
 and the Qwen2.5-VL DFlash adapter, then must accept `--speculative-config` with
 `"method": "dflash"`. Verify it before serving:
 
@@ -38,8 +38,9 @@ python parsing/scripts/download_dflash_model.py \
 
 `--draft-model` is optional. Without it, `serve.py` starts the unchanged
 baseline server. With it, the launcher adds the DFlash speculative configuration,
-uses a 16-token proposal block, sets `max_num_seqs=1024`, and raises scheduler
-capacity to at least 65536. These are the validated MonkeyOCRv2 DFlash values.
+uses a 16-token proposal block, sets `max_num_seqs=128` by default and raises scheduler capacity to at least
+65536. `128` is validated on a 24GB RTX 4090; use `--dflash-max-num-seqs 1024`
+only on a GPU with sufficient warmup headroom.
 
 ```bash
 cd parsing
@@ -73,3 +74,25 @@ python fastapi/main.py \
   vLLM build requires its own default backend.
 - A failed draft download or unsupported DFlash vLLM build stops startup before
   serving. It does not silently switch a requested DFlash service to baseline.
+
+## Validated smoke configuration
+
+The integration was exercised on a 24GB RTX 4090 with the target and a local
+b16 draft. The real server loaded `DFlashMonkeyOCRv2ForCausalLM`, reported
+`SpeculativeConfig(method='dflash')`, and completed an image chat-completion
+request. The tested launch configuration was:
+
+```bash
+CUDA_VISIBLE_DEVICES=0 \
+PYTHONPATH=/path/to/dflash-vllm:/path/to/MonkeyOCRv2/parsing \
+PATH=/path/to/venv/bin:$PATH \
+python parsing/serve.py \
+  --model-path /models/MonkeyOCRv2-B-Parsing \
+  --draft-model /models/MonkeyOCRv2-B-Parsing-DFlash \
+  --dflash-max-num-seqs 128 \
+  --max-num-batched-tokens 65536
+```
+
+Before publishing, retain a `config.json` whose `dflash_config.block_size` is
+`16` and whose architecture resolves to `DFlashMonkeyOCRv2ForCausalLM` in the
+DFlash vLLM registry.

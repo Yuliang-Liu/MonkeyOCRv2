@@ -94,8 +94,8 @@ def main():
     parser.add_argument(
         "--dflash-max-num-seqs",
         type=int,
-        default=int(os.getenv("MOCR2_DFLASH_MAX_NUM_SEQS", "1024")),
-        help="Maximum concurrent sequences passed only for DFlash. The validated server setting is 1024.",
+        default=int(os.getenv("MOCR2_DFLASH_MAX_NUM_SEQS", "128")),
+        help="Maximum concurrent sequences passed only for DFlash. The 24GB-validated setting is 128; set 1024 only on sufficiently large GPUs.",
     )
     parser.add_argument("--served-model-name", default="MonkeyOCRv2")
     parser.add_argument("--host", default=None)
