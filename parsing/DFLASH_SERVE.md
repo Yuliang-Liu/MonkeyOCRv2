@@ -26,12 +26,12 @@ is still `MonkeyOCRv2-B-Parsing`; only the draft comes from the new repository.
 python parsing/scripts/download_dflash_model.py \
   --source hf \
   --repo-id <org>/MonkeyOCRv2-B-Parsing-DFlash \
-  --output-dir /models/MonkeyOCRv2-B-Parsing-DFlash
+  --output-dir ./models/MonkeyOCRv2-B-Parsing-DFlash
 
 python parsing/scripts/download_dflash_model.py \
   --source modelscope \
   --repo-id <namespace>/MonkeyOCRv2-B-Parsing-DFlash \
-  --output-dir /models/MonkeyOCRv2-B-Parsing-DFlash
+  --output-dir ./models/MonkeyOCRv2-B-Parsing-DFlash
 ```
 
 ## 3. Start the DFlash server
@@ -45,8 +45,8 @@ only on a GPU with sufficient warmup headroom.
 ```bash
 cd parsing
 python serve.py \
-  --model-path /models/MonkeyOCRv2-B-Parsing \
-  --draft-model /models/MonkeyOCRv2-B-Parsing-DFlash \
+  --model-path ../models/MonkeyOCRv2-B-Parsing \
+  --draft-model ./models/MonkeyOCRv2-B-Parsing-DFlash \
   --served-model-name MonkeyOCRv2 \
   --port 8888
 ```
@@ -55,7 +55,7 @@ The parsing API continues to call the same endpoint:
 
 ```bash
 python fastapi/main.py \
-  --model-path /models/MonkeyOCRv2-B-Parsing \
+  --model-path ../models/MonkeyOCRv2-B-Parsing \
   --server-url http://127.0.0.1:8888 \
   --served-model-name MonkeyOCRv2
 ```
@@ -84,11 +84,11 @@ request. The tested launch configuration was:
 
 ```bash
 CUDA_VISIBLE_DEVICES=0 \
-PYTHONPATH=/path/to/dflash-vllm:/path/to/MonkeyOCRv2/parsing \
-PATH=/path/to/venv/bin:$PATH \
+PYTHONPATH=<dflash-vllm-src>:<MonkeyOCRv2>/parsing \
+PATH=<venv>/bin:$PATH \
 python parsing/serve.py \
-  --model-path /models/MonkeyOCRv2-B-Parsing \
-  --draft-model /models/MonkeyOCRv2-B-Parsing-DFlash \
+  --model-path ../models/MonkeyOCRv2-B-Parsing \
+  --draft-model ./models/MonkeyOCRv2-B-Parsing-DFlash \
   --dflash-max-num-seqs 128 \
   --max-num-batched-tokens 65536
 ```
