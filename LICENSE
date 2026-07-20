@@ -1,0 +1,1 @@
+The code and all MonkeyOCRv2 model weights (encoders, Parsing, Und) are released under the [Apache License 2.0](LICENSE). The MonkeyDoc v2 annotations are released under CC BY 4.0; see the dataset card for image-source terms. For collaboration inquiries: xbai@hust.edu.cn, ylliu@hust.edu.cn.

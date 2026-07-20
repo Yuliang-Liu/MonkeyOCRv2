@@ -1201,6 +1201,24 @@ This multi-expert agreement strategy reduces model-specific annotation errors an
 - **PaddleOCR-VL**: https://github.com/PaddlePaddle/PaddleOCR
 - **Qwen3-VL**: https://github.com/QwenLM/Qwen3-VL
 - **Qwen3**: https://github.com/QwenLM/Qwen3
+- **MonkeyOCR**: https://github.com/Yuliang-Liu/MonkeyOCR
+- **MDPBench**: https://github.com/Yuliang-Liu/MultimodalOCR
+
+## Citation
+If you use any part of this release — the MonkeyOCRv2 encoders, MonkeyOCRv2-Parsing,
+MonkeyOCRv2-Und, the MDPBench benchmark, or the MonkeyDoc v2 dataset — please cite:
+
+```bibtex
+@article{liu2026monkeyocrv2,
+  title   = {MonkeyOCRv2: A Visual-Text Foundation Model for Document AI},
+  author  = {Liu, Yuliang and Li, Zhang and Zhang, Ziyang and Zhang, Shuo and
+             Liu, Qiang and Song, Jiajun and Guo, Zidun and Wang, Xinhan and
+             Zheng, Handong and Liu, Yang and Luo, Dongliang and Ma, Zhiyin and
+             Zhang, Jiarui and Bai, Xiang},
+  journal = {arXiv preprint arXiv:2607.11562},
+  year    = {2026}
+}
+```
 
 ## Copyright
-We warmly welcome your feedback, suggestions, and contributions, which are essential to the continued development and improvement of our framework. Note: This model is intended for academic research and non-commercial use only. For any questions, please contact us at xbai@hust.edu.cn or ylliu@hust.edu.cn.
+We warmly welcome your feedback, suggestions, and contributions, which are essential to the continued development and improvement of our framework. The models are  are released under the [Apache License 2.0](LICENSE) and are free for both research and commercial use. For any questions, please contact us at xbai@hust.edu.cn or ylliu@hust.edu.cn.
