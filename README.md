@@ -1200,7 +1200,10 @@ Our model supports robust document parsing in real-world scenarios across 17 lan
     </tbody>
 </table>
 
-## Expert Model Labeling Toolchain
+## MonkeyDoc v2
+MonkeyDoc v2 is currently the largest document image pre-training image-text pair dataset, comprising 113 million document images across 17 languages. The open-sourcing of MonkeyDoc v2 is still underway. So far, we have released all 52 million synthetic samples and 35 million real-world samples derived from FinePDF. Additional real-world data from other sources is currently being organized and will be released progressively.
+
+### Expert Model Labeling Toolchain
 
 We adopt a multi-expert labeling pipeline to obtain reliable annotations for documents. The pipeline includes the following steps:
 1. **Structure Detection**  
@@ -1220,6 +1223,8 @@ This multi-expert agreement strategy reduces model-specific annotation errors an
 - **Qwen3**: https://github.com/QwenLM/Qwen3
 - **MonkeyOCR**: https://github.com/Yuliang-Liu/MonkeyOCR
 - **MDPBench**: https://github.com/Yuliang-Liu/MultimodalOCR
+- **MonkeyDoc**: https://modelscope.cn/datasets/zenosai/MonkeyDoc
+- **FinePDF**: https://huggingface.co/datasets/HuggingFaceFW/finepdfs
 
 ## Citation
 If you use any part of this release — the MonkeyOCRv2 encoders, MonkeyOCRv2-Parsing,
