@@ -20,6 +20,22 @@
 MonkeyOCRv2 is a text-centric visual foundation model that unifies fine-grained text modeling, cross-task representation learning, and cross-lingual generalization in a single encoder. MonkeyOCRv2 generalizes effectively across a broad range of OCR and document intelligence tasks, including multilingual document parsing, document understanding, text recognition, formula recognition, document tampering detection, scene text detection, and overlapping text segmentation.
 
 
+## MonkeyOCRv2 Ecosystem
+MonkeyOCRv2 Encoder can be used for:<br>
+✓ OCR<br>
+✓ Document VQA / KIE<br>
+✓ Remote sensing documents<br>
+✓ Medical reports<br>
+✓ Scientific papers<br>
+✓ Historical documents<br>
+✓ Charts and tables<br>
+```bash
+from transformers import AutoModel
+MonkeyOCRv2 = AutoModel.from_pretrained("MonkeyOCRv2-B")
+```
+See [Quick Start](https://github.com/Yuliang-Liu/MonkeyOCRv2#vision-encoder) for detailed usage.
+
+
 ## Model Zoo
 
 #### 1. Vision Encoder
@@ -189,7 +205,6 @@ MonkeyOCRv2 is a text-centric visual foundation model that unifies fine-grained 
     </tr>
   </tbody>
 </table>
-
 
 ## Quick Start
 ### Vision Encoder
