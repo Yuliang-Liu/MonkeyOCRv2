@@ -1,24 +1,22 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Generic MonkeyOCRv2 DFlash + FlashAttention launcher.
-# The FA2 extension must be built in the same Python/PyTorch/CUDA environment;
-# this script never copies a compiled extension.
 if [[ "${1:-}" == "-h" || "${1:-}" == "--help" ]]; then
   cat <<'EOF'
-Usage: run_dflash_flashattn.sh [additional vLLM arguments]
+Usage: run_dflash_flashinfer.sh [additional vLLM arguments]
 
 Required environment variables:
   TARGET_MODEL       Local MonkeyOCRv2 target checkpoint
   DRAFT_MODEL        Local MonkeyOCRv2 DFlash draft checkpoint
 
 Optional environment variables:
-  VLLM_SOURCE, PYTHON_BIN, CUDA_VISIBLE_DEVICES, PORT, MAX_NUM_SEQS,
-  MAX_NUM_BATCHED_TOKENS, MAX_MODEL_LEN, NUM_SPECULATIVE_TOKENS,
-  GPU_MEMORY_UTILIZATION, TENSOR_PARALLEL_SIZE
+  VLLM_SOURCE, PYTHON_BIN, PORT, MAX_NUM_SEQS, MAX_NUM_BATCHED_TOKENS,
+  MAX_MODEL_LEN, NUM_SPECULATIVE_TOKENS, GPU_MEMORY_UTILIZATION,
+  TENSOR_PARALLEL_SIZE
 EOF
   exit 0
 fi
+
 ROOT=$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)
 TARGET_MODEL=${TARGET_MODEL:-}
 DRAFT_MODEL=${DRAFT_MODEL:-}
@@ -42,18 +40,13 @@ if [[ -n "$VLLM_SOURCE" ]]; then
 fi
 export PYTHONPATH="$ROOT/parsing:${PYTHONPATH:-}"
 
-"$PYTHON_BIN" - <<'PY'
-from vllm.vllm_flash_attn import flash_attn_interface as fa2
-if not getattr(fa2, "FA2_AVAILABLE", False):
-    raise SystemExit("FLASH_ATTN requested but the native vLLM FA2 extension is unavailable")
-print("Native vLLM FA2 extension: available")
-PY
+"$PYTHON_BIN" -c 'import flashinfer; print("FlashInfer: available")'
 
 exec "$PYTHON_BIN" "$ROOT/parsing/serve.py" \
   --model-path "$TARGET_MODEL" \
   --draft-model "$DRAFT_MODEL" \
-  --target-attention-backend FLASH_ATTN \
-  --dflash-attention-backend FLASH_ATTN \
+  --target-attention-backend FLASHINFER \
+  --dflash-attention-backend FLASHINFER \
   --num-speculative-tokens "$NUM_SPECULATIVE_TOKENS" \
   --dflash-max-num-seqs "$MAX_NUM_SEQS" \
   --tensor-parallel-size "$TENSOR_PARALLEL_SIZE" \

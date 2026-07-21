@@ -15,6 +15,7 @@ Options:
   --python PYTHON         Python executable (default: python)
   --cuda-home DIR         CUDA toolkit root (optional)
   --max-jobs N            Parallel build jobs (default: nproc)
+  --jobs N                Alias for --max-jobs
   -h, --help              Show this help
 EOF
 }
@@ -31,7 +32,7 @@ while [[ $# -gt 0 ]]; do
     --flash-attn-source) FLASH_ATTN_SOURCE=${2:?missing value}; shift 2 ;;
     --python) PYTHON_BIN=${2:?missing value}; shift 2 ;;
     --cuda-home) CUDA_HOME_ARG=${2:?missing value}; shift 2 ;;
-    --max-jobs) MAX_JOBS=${2:?missing value}; shift 2 ;;
+    --max-jobs|--jobs) MAX_JOBS=${2:?missing value}; shift 2 ;;
     -h|--help) usage; exit 0 ;;
     *) echo "Unknown argument: $1" >&2; usage >&2; exit 2 ;;
   esac
