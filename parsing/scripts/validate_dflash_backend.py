@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Start a local DFlash server and validate one real image request."""
+"""Validate one real-image baseline or DFlash vLLM request."""
 
 from __future__ import annotations
 
@@ -17,6 +17,9 @@ from urllib.error import URLError
 from urllib.request import Request, urlopen
 
 
+BACKENDS = ("FLASH_ATTN", "FLASHINFER")
+
+
 def http_json(url: str, payload: dict | None = None, timeout: float = 5.0) -> dict:
     data = None
     headers = {}
@@ -27,53 +30,76 @@ def http_json(url: str, payload: dict | None = None, timeout: float = 5.0) -> di
         return json.loads(response.read().decode())
 
 
+def build_command(args, serve_py: Path, draft_backend: str | None, target_backend: str) -> list[str]:
+    command = [
+        sys.executable,
+        str(serve_py),
+        "--model-path",
+        str(Path(args.model_path).expanduser()),
+        "--served-model-name",
+        "MonkeyOCRv2",
+        "--port",
+        str(args.port),
+    ]
+    if target_backend:
+        command.extend(["--target-attention-backend", target_backend])
+    if args.mode == "dflash":
+        command.extend(
+            [
+                "--draft-model",
+                str(Path(args.draft_model).expanduser()),
+                "--dflash-attention-backend",
+                str(draft_backend),
+                "--validate-models",
+            ]
+        )
+    return command
+
+
 def main() -> int:
-    ap = argparse.ArgumentParser(description=__doc__)
-    ap.add_argument("--backend", choices=("FLASH_ATTN", "FLASHINFER"), required=True)
-    ap.add_argument(
-        "--target-attention-backend",
-        choices=("", "FLASH_ATTN", "FLASHINFER"),
-        default="",
-        help="Optional global target backend; the draft backend remains --backend.",
-    )
-    ap.add_argument("--model-path", required=True)
-    ap.add_argument("--draft-model", required=True)
-    ap.add_argument("--image", required=True)
-    ap.add_argument("--port", type=int, default=8888)
-    ap.add_argument("--timeout", type=float, default=180.0)
-    ap.add_argument("--report", required=True)
-    ap.add_argument("--log-dir", required=True)
-    args = ap.parse_args()
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--mode", choices=("baseline", "dflash"), required=True)
+    parser.add_argument("--backend", choices=BACKENDS, required=True)
+    parser.add_argument("--target-backend", choices=("", *BACKENDS), default="")
+    parser.add_argument("--draft-backend", choices=BACKENDS, default=None)
+    parser.add_argument("--model-path", required=True)
+    parser.add_argument("--draft-model")
+    parser.add_argument("--image", required=True)
+    parser.add_argument("--port", type=int, default=8888)
+    parser.add_argument("--timeout", type=float, default=180.0)
+    parser.add_argument("--report", required=True)
+    parser.add_argument("--log-dir", required=True)
+    args = parser.parse_args()
+
+    if args.mode == "dflash" and not args.draft_model:
+        parser.error("--draft-model is required in dflash mode")
+    if args.mode == "baseline" and args.draft_model:
+        parser.error("--draft-model is not allowed in baseline mode")
 
     model_path = Path(args.model_path).expanduser()
-    draft_path = Path(args.draft_model).expanduser()
+    draft_path = Path(args.draft_model).expanduser() if args.draft_model else None
     image_path = Path(args.image).expanduser()
-    if not model_path.is_dir() or not draft_path.is_dir() or not image_path.is_file():
+    if not model_path.is_dir() or (draft_path is not None and not draft_path.is_dir()) or not image_path.is_file():
         print("SKIPPED: target, draft, or image path is missing", file=sys.stderr)
         return 2
+
+    target_backend = args.target_backend
+    draft_backend = args.draft_backend or (args.backend if args.mode == "dflash" else None)
+    if args.mode == "baseline" and not target_backend:
+        target_backend = args.backend
 
     log_dir = Path(args.log_dir).expanduser()
     log_dir.mkdir(parents=True, exist_ok=True)
     report_path = Path(args.report).expanduser()
     report_path.parent.mkdir(parents=True, exist_ok=True)
-    server_log = log_dir / f"serve_{args.backend.lower()}.log"
+    server_log = log_dir / f"serve_{args.mode}_{args.backend.lower()}.log"
     serve_py = Path(__file__).resolve().parents[1] / "serve.py"
     env = os.environ.copy()
     env["PYTHONPATH"] = str(serve_py.parent) + os.pathsep + env.get("PYTHONPATH", "")
     env["PATH"] = str(Path(sys.executable).parent) + os.pathsep + env.get("PATH", "")
-    command = [
-        sys.executable, str(serve_py),
-        "--model-path", str(model_path),
-        "--draft-model", str(draft_path),
-        "--dflash-attention-backend", args.backend,
-        "--served-model-name", "MonkeyOCRv2",
-        "--port", str(args.port),
-    ]
-    if args.target_attention_backend:
-        command.extend(["--target-attention-backend", args.target_attention_backend])
+    command = build_command(args, serve_py, draft_backend, target_backend)
     started = time.time()
     process = None
-    lines = []
     status = "FAIL"
     reason = ""
     try:
@@ -104,7 +130,11 @@ def main() -> int:
                     "max_tokens": 32,
                     "temperature": 0,
                 }
-                response = http_json(f"http://127.0.0.1:{args.port}/v1/chat/completions", payload, timeout=args.timeout)
+                response = http_json(
+                    f"http://127.0.0.1:{args.port}/v1/chat/completions",
+                    payload,
+                    timeout=args.timeout,
+                )
                 content = response.get("choices", [{}])[0].get("message", {}).get("content", "")
                 if content:
                     status = "PASS"
@@ -123,32 +153,30 @@ def main() -> int:
                 process.wait()
 
     log_text = server_log.read_text(encoding="utf-8", errors="replace") if server_log.exists() else ""
-    backend_marker = any(
-        marker in log_text
-        for marker in (
-            f"AttentionBackendEnum.{args.backend}",
-            f"Using {args.backend}",
-            f"backend={args.backend}",
-        )
-    )
+    has_forbidden_fallback = "fallback" in log_text.lower() and args.mode == "dflash"
     markers = {
-        "method=dflash": "method=dflash" in log_text or "method='dflash'" in log_text,
-        "SpeculativeConfig": "SpeculativeConfig" in log_text,
-        f"backend={args.backend}": backend_marker,
+        "target_backend": not target_backend or target_backend in log_text,
+        "draft_backend": args.mode == "baseline" or str(draft_backend) in log_text,
+        "method_dflash": args.mode == "baseline" or "method=dflash" in log_text or "method='dflash'" in log_text,
+        "speculative_config": args.mode == "baseline" or "SpeculativeConfig" in log_text,
+        "baseline_no_speculation": args.mode != "baseline" or "SpeculativeConfig" not in log_text,
+        "no_fallback": not has_forbidden_fallback,
     }
     if status == "PASS" and not all(markers.values()):
         status = "FAIL"
-        reason = "request succeeded but DFlash/backend markers were not all found in the server log"
-    lines.extend([
-        f"backend: {args.backend}",
-        f"target_backend: {args.target_attention_backend or 'vLLM default'}",
+        reason = "request succeeded but expected mode/backend markers were not all found"
+
+    lines = [
+        f"mode: {args.mode}",
+        f"target_backend: {target_backend or 'vLLM default'}",
+        f"draft_backend: {draft_backend or 'none'}",
         f"status: {status}",
         f"elapsed_s: {time.time() - started:.2f}",
-        f"server_log: {server_log}",
-        f"method_dflash: {markers['method=dflash']}",
-        f"speculative_config: {markers['SpeculativeConfig']}",
-        f"backend_marker: {markers[f'backend={args.backend}']}",
-    ])
+        f"method_dflash: {markers['method_dflash']}",
+        f"speculative_config: {markers['speculative_config']}",
+        f"baseline_no_speculation: {markers['baseline_no_speculation']}",
+        f"no_backend_fallback: {markers['no_fallback']}",
+    ]
     if reason:
         lines.append(f"reason: {reason}")
     report_path.write_text("\n".join(lines) + "\n", encoding="utf-8")

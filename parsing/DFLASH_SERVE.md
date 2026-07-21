@@ -197,7 +197,7 @@ Static environment checks do not claim runtime support:
 ```bash
 python parsing/scripts/check_dflash_env.py \
   --backend FLASHINFER \
-  --model-path ../models/MonkeyOCRv2-B-Parsing \
+  --target-model ../models/MonkeyOCRv2-B-Parsing \
   --draft-model ../models/MonkeyOCRv2-B-Parsing-DFlash
 ```
 
