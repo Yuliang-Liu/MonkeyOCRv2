@@ -14,6 +14,7 @@
 </div>
 
 ## News
+* `2026.07.21` 🚀 We release [MonkeyDoc v2](https://github.com/Yuliang-Liu/MonkeyOCRv2).
 * `2026.07.11` 🚀 We release [MonkeyOCRv2](https://github.com/Yuliang-Liu/MonkeyOCRv2), including MonkeyOCRv2 vision encoder, MonkeyOCRv2-Parsing for multilingual document parsing, MonkeyOCRv2-Und for efficient document understanding.
 
 ## Introduction
