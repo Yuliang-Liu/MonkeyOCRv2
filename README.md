@@ -14,27 +14,28 @@
 </div>
 
 ## News
-* `2026.07.21` 🚀 We release [MonkeyDoc v2](https://modelscope.cn/datasets/zenosai/MonkeyDocv2).
+* `2026.07.21` 📦 We release [MonkeyDoc v2](https://modelscope.cn/datasets/zenosai/MonkeyDocv2), an open multilingual corpus for document-oriented pretraining. We hope it can serve as a shared data foundation for more transparent, reproducible, and fair comparisons in Document AI.
 * `2026.07.11` 🚀 We release [MonkeyOCRv2](https://github.com/Yuliang-Liu/MonkeyOCRv2), including MonkeyOCRv2 vision encoder, MonkeyOCRv2-Parsing for multilingual document parsing, MonkeyOCRv2-Und for efficient document understanding.
 
-## Introduction
-MonkeyOCRv2 is a text-centric visual foundation model that unifies fine-grained text modeling, cross-task representation learning, and cross-lingual generalization in a single encoder. MonkeyOCRv2 generalizes effectively across a broad range of OCR and document intelligence tasks, including multilingual document parsing, document understanding, text recognition, formula recognition, document tampering detection, scene text detection, and overlapping text segmentation.
+## Use MonkeyOCRv2 as a Vision Backbone
 
+MonkeyOCRv2 is released as a standalone, document-native vision encoder. It can be integrated into different OCR and document AI systems as a visual backbone.
 
-## MonkeyOCRv2 Ecosystem
-MonkeyOCRv2 Encoder can be used for:<br>
-✓ OCR<br>
-✓ Document VQA / KIE<br>
-✓ Remote sensing documents<br>
-✓ Medical reports<br>
-✓ Scientific papers<br>
-✓ Historical documents<br>
-✓ Charts and tables<br>
-```bash
+The current release has been evaluated on document parsing, document understanding, text recognition, formula recognition, text detection, document tampering detection, and overlapping-text segmentation.
+
+Beyond these evaluated tasks, the encoder may also be useful for text-rich scenarios such as scientific papers, historical documents, medical reports, charts and tables, and remote-sensing maps or reports. We welcome community exploration of these directions.
+
+```python
 from transformers import AutoModel
-MonkeyOCRv2 = AutoModel.from_pretrained("MonkeyOCRv2-B")
+
+encoder = AutoModel.from_pretrained(
+    "zenosai/MonkeyOCRv2-B",
+    trust_remote_code=True,
+    dtype="auto",
+    device_map="auto",
+)
 ```
-See [Quick Start](https://github.com/Yuliang-Liu/MonkeyOCRv2#vision-encoder) for detailed usage.
+See the Vision Encoder [Quick Start](https://github.com/Yuliang-Liu/MonkeyOCRv2#vision-encoder) for installation and feature-extraction examples. If you adapt MonkeyOCRv2 to a new task or domain, feel free to open an issue or pull request and share the results.
 
 
 ## Model Zoo
