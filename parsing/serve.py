@@ -39,6 +39,9 @@ def build_vllm_argv(args) -> list[str]:
     if args.host:
         argv.extend(["--host", args.host])
 
+    if args.target_attention_backend:
+        argv.extend(["--attention-backend", args.target_attention_backend])
+
     if args.draft_model:
         draft_model = str(Path(args.draft_model).expanduser())
         ensure_model_path(draft_model)
@@ -50,8 +53,6 @@ def build_vllm_argv(args) -> list[str]:
         if args.dflash_attention_backend:
             speculative_config["attention_backend"] = args.dflash_attention_backend
         argv.extend(["--speculative-config", json.dumps(speculative_config)])
-        if args.dflash_attention_backend:
-            argv.extend(["--attention-backend", args.dflash_attention_backend])
         if args.dflash_max_num_seqs:
             argv.extend(["--max-num-seqs", str(args.dflash_max_num_seqs)])
 
@@ -75,6 +76,12 @@ def main():
     parser.add_argument("--gpu-memory-utilization", type=float, default=0.5)
     parser.add_argument("--max-model-len", "--max_model_len", type=int, default=16384)
     parser.add_argument("--max-num-batched-tokens", type=int, default=16384)
+    parser.add_argument(
+        "--target-attention-backend",
+        choices=("", "FLASH_ATTN", "FLASHINFER"),
+        default=os.getenv("MOCR2_TARGET_ATTENTION_BACKEND", ""),
+        help="Optional global target attention backend. Leave empty for vLLM default.",
+    )
     parser.add_argument(
         "--draft-model",
         default=os.getenv("MOCR2_DFLASH_DRAFT_MODEL", ""),
@@ -102,6 +109,11 @@ def main():
     parser.add_argument("--port", "-p", type=int, default=8888)
     parser.add_argument("extra_args", nargs=argparse.REMAINDER, help="Extra arguments passed to vLLM serve")
     args = parser.parse_args()
+
+    if args.dflash_attention_backend not in {"", "FLASH_ATTN", "FLASHINFER"}:
+        parser.error("--dflash-attention-backend must be empty, FLASH_ATTN, or FLASHINFER")
+    if args.target_attention_backend not in {"", "FLASH_ATTN", "FLASHINFER"}:
+        parser.error("--target-attention-backend must be empty, FLASH_ATTN, or FLASHINFER")
 
     ensure_model_path(args.model_path)
     if args.draft_model and args.max_num_batched_tokens < 65536:
