@@ -3,7 +3,9 @@ import argparse
 import json
 import os
 import socket
+import subprocess
 import sys
+import inspect
 from pathlib import Path
 
 from modeling import modeling_monkeyocrv2_vllm  # noqa: F401
@@ -69,6 +71,27 @@ def ensure_port_available(host: str | None, port: int):
             raise SystemExit(f"Port is already in use: {probe_host}:{port}")
 
 
+def ensure_dflash_support() -> None:
+    try:
+        from vllm.config import SpeculativeConfig
+
+        source = inspect.getsource(SpeculativeConfig).lower()
+    except Exception as exc:
+        raise SystemExit(f"DFlash requested but vLLM speculative config is unavailable: {exc}") from exc
+    if "dflash" not in source:
+        raise SystemExit("DFlash requested but this vLLM build does not support method=dflash")
+
+
+def validate_models(parsing_dir: Path, target_model: str, draft_model: str) -> None:
+    checker = parsing_dir / "scripts" / "check_dflash_models.py"
+    result = subprocess.run(
+        [sys.executable, str(checker), "--target-model", target_model, "--draft-model", draft_model],
+        check=False,
+    )
+    if result.returncode:
+        raise SystemExit("Target/DFlash model compatibility check failed")
+
+
 def main():
     parser = argparse.ArgumentParser(description="Start vLLM serve for MonkeyOCRv2.")
     parser.add_argument("--model-path", "-m", default='../model_weight/MonkeyOCRv2-B-Parsing')
@@ -95,7 +118,7 @@ def main():
     )
     parser.add_argument(
         "--dflash-attention-backend",
-        default=os.getenv("MOCR2_DFLASH_ATTENTION_BACKEND", "FLASHINFER"),
+        default=os.getenv("MOCR2_DFLASH_ATTENTION_BACKEND", "FLASH_ATTN"),
         help="Attention backend passed only for DFlash. Set an empty value to leave vLLM's default.",
     )
     parser.add_argument(
@@ -107,6 +130,11 @@ def main():
     parser.add_argument("--served-model-name", default="MonkeyOCRv2")
     parser.add_argument("--host", default=None)
     parser.add_argument("--port", "-p", type=int, default=8888)
+    parser.add_argument(
+        "--validate-models",
+        action="store_true",
+        help="Validate target/draft config compatibility before starting DFlash.",
+    )
     parser.add_argument("extra_args", nargs=argparse.REMAINDER, help="Extra arguments passed to vLLM serve")
     args = parser.parse_args()
 
@@ -116,6 +144,16 @@ def main():
         parser.error("--target-attention-backend must be empty, FLASH_ATTN, or FLASHINFER")
 
     ensure_model_path(args.model_path)
+    if args.draft_model:
+        ensure_dflash_support()
+        if args.num_speculative_tokens <= 0:
+            parser.error("--num-speculative-tokens must be positive in DFlash mode")
+        if args.dflash_max_num_seqs <= 0:
+            parser.error("--dflash-max-num-seqs must be positive in DFlash mode")
+        if args.validate_models:
+            validate_models(Path(__file__).resolve().parent, args.model_path, args.draft_model)
+    elif args.validate_models:
+        parser.error("--validate-models requires --draft-model")
     if args.draft_model and args.max_num_batched_tokens < 65536:
         # DFlash needs enough scheduler capacity to verify a 16-token block.
         args.max_num_batched_tokens = 65536
