@@ -1233,7 +1233,7 @@ This multi-expert agreement strategy reduces model-specific annotation errors an
 - **MonkeyOCR**: https://github.com/Yuliang-Liu/MonkeyOCR
 - **MDPBench**: https://github.com/Yuliang-Liu/MultimodalOCR
 - **MonkeyDoc**: https://modelscope.cn/datasets/zenosai/MonkeyDoc
-- **FinePDF**: https://huggingface.co/datasets/HuggingFaceFW/finepdfs
+- **MonkeyDoc v2**: https://modelscope.cn/datasets/zenosai/MonkeyDocv2
 
 ## Citation
 If you use any part of this release — the MonkeyOCRv2 encoders, MonkeyOCRv2-Parsing,
