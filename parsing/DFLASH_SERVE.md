@@ -7,12 +7,13 @@ serving behavior.
 ## 1. Install the vLLM patch
 
 The bundled patch targets vLLM commit
-`dbc3d9991ab0e5adc0db6a8c71c9059268032a14`. Prepare that checkout first:
+`dbc3d9991ab0e5adc0db6a8c71c9059268032a14`. Keep the vLLM checkout and the
+MonkeyOCRv2 checkout in separate directories:
 
 ```bash
-git clone https://github.com/vllm-project/vllm.git
-cd vllm
-git checkout dbc3d9991ab0e5adc0db6a8c71c9059268032a14
+git clone https://github.com/vllm-project/vllm.git /path/to/vllm
+git -C /path/to/vllm checkout dbc3d9991ab0e5adc0db6a8c71c9059268032a14
+cd /path/to/MonkeyOCRv2
 ```
 
 The installer checks that this worktree is clean before applying the patch,
@@ -22,11 +23,11 @@ patch.
 
 ```bash
 bash parsing/scripts/install_dflash_vllm.sh \
-  --vllm-source <clean-vllm-checkout> \
+  --vllm-source /path/to/vllm \
   --patch parsing/patches/vllm-dflash.patch \
-  --flash-attn-source <local-vllm-flash-attn-source> \
-  --cuda-home <cuda-toolkit> \
-  --python <python>
+  --flash-attn-source /path/to/vllm-flash-attn \
+  --cuda-home /usr/local/cuda \
+  --python python
 ```
 
 Use `--skip-fa2-build` only when the same environment already has a validated
