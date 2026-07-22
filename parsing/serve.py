@@ -80,6 +80,13 @@ def ensure_dflash_support() -> None:
         raise SystemExit(f"DFlash requested but vLLM speculative config is unavailable: {exc}") from exc
     if "dflash" not in source:
         raise SystemExit("DFlash requested but this vLLM build does not support method=dflash")
+    try:
+        from vllm.v1.spec_decode.dflash import DFlashProposer  # noqa: F401
+    except Exception as exc:
+        raise SystemExit(
+            "DFlash requested but vLLM has no usable native DFlash proposer: "
+            f"{exc}"
+        ) from exc
 
 
 def validate_models(parsing_dir: Path, target_model: str, draft_model: str) -> None:

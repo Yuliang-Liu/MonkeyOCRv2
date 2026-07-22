@@ -4,7 +4,29 @@ This directory provides a FlashAttention-backed DFlash speculative decoding
 path for MonkeyOCRv2. Without `--draft-model`, `serve.py` keeps ordinary vLLM
 serving behavior.
 
-## 1. Install the vLLM patch
+## 1. Install vLLM
+
+### Option A: native pip vLLM (preferred)
+
+Recent vLLM releases include the DFlash proposer and FlashAttention backend.
+This path does not apply the bundled patch or compile a local FlashAttention
+extension:
+
+```bash
+bash parsing/scripts/install_dflash_vllm_pip.sh \
+  --vllm-version 0.25.1 \
+  --python python \
+  --target-model /path/to/MonkeyOCRv2-B-Parsing \
+  --draft-model /path/to/MonkeyOCRv2-B-Parsing-DFlash
+```
+
+The installer validates native `method=dflash`, the DFlash proposer,
+`FLASH_ATTN`, the vLLM FlashAttention extension, and the MonkeyOCRv2 plugin.
+It fails instead of silently falling back to ordinary decoding. vLLM 0.11.2
+is too old for this native path; use the source-patch path below for that
+version.
+
+### Option B: bundled source patch (legacy fallback)
 
 The bundled patch targets vLLM commit
 `dbc3d9991ab0e5adc0db6a8c71c9059268032a14`. Keep the vLLM checkout and the

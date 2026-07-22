@@ -21,6 +21,11 @@ def main() -> int:
     parser.add_argument("--target-model")
     parser.add_argument("--draft-model")
     parser.add_argument("--vllm-source")
+    parser.add_argument(
+        "--require-native-dflash",
+        action="store_true",
+        help="Require DFlash to come from the installed vLLM package.",
+    )
     parser.add_argument("--runtime", action="store_true", help="Print that runtime image validation is required.")
     args = parser.parse_args()
 
@@ -41,11 +46,19 @@ def main() -> int:
     except Exception as exc:
         ok &= check(False, "PyTorch/CUDA import", str(exc))
 
+    vllm_path = None
     try:
         import vllm
 
         print("vLLM version:", getattr(vllm, "__version__", "unknown"))
         print("vLLM path:", vllm.__file__)
+        vllm_path = Path(vllm.__file__).resolve()
+        if args.require_native_dflash and args.vllm_source:
+            ok &= check(False, "Native vLLM package", "--vllm-source cannot be used")
+        elif args.require_native_dflash and "site-packages" not in str(vllm_path):
+            ok &= check(False, "Native vLLM package", f"loaded from source: {vllm_path}")
+        elif args.require_native_dflash:
+            ok &= check(True, "Native vLLM package", str(vllm_path))
         ok &= check(True, "vLLM import")
     except Exception as exc:
         ok &= check(False, "vLLM import", str(exc))
@@ -83,13 +96,24 @@ def main() -> int:
         ok &= check(False, "MonkeyOCRv2 plugin import", str(exc))
 
     try:
-        adapter = importlib.import_module("vllm.model_executor.models.qwen2_5_vl_dflash")
+        adapter = importlib.import_module(
+            "modeling.modeling_monkeyocrv2_dflash_vllm"
+        )
         ok &= check(
-            hasattr(adapter, "Qwen25VLDFlashForConditionalGeneration"),
-            "DFlash draft model adapter import",
+            hasattr(adapter, "DFlashMonkeyOCRv2ForCausalLM"),
+            "MonkeyOCRv2 DFlash draft adapter import",
         )
     except Exception as exc:
-        ok &= check(False, "DFlash draft model adapter import", str(exc))
+        ok &= check(False, "MonkeyOCRv2 DFlash draft adapter import", str(exc))
+
+    try:
+        model_cls = plugin.MonkeyOCRv2ForCausalLM
+        ok &= check(
+            isinstance(getattr(model_cls, "lm_head", None), property),
+            "Target lm_head sharing property",
+        )
+    except Exception as exc:
+        ok &= check(False, "Target lm_head sharing property", str(exc))
 
     try:
         interface = importlib.import_module("vllm.vllm_flash_attn.flash_attn_interface")

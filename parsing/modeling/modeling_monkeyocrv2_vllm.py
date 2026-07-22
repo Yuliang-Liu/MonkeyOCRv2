@@ -911,6 +911,12 @@ class MonkeyOCRv2ForCausalLM(nn.Module, SupportsMultiModal, SupportsPP, Supports
     def get_language_model(self) -> torch.nn.Module:
         return self.language_model
 
+    @property
+    def lm_head(self) -> torch.nn.Module:
+        """Expose the decoder head for vLLM speculative-model weight sharing."""
+
+        return self.language_model.lm_head
+
     def embed_multimodal(self, **kwargs: object) -> MultiModalEmbeddings:
         image_input = self._parse_and_validate_image_input(**kwargs)
         if image_input is None:
@@ -968,4 +974,13 @@ class MonkeyOCRv2ForCausalLM(nn.Module, SupportsMultiModal, SupportsPP, Supports
 
 ModelRegistry.register_model(
     "MonkeyOCRv2ForCausalLM", MonkeyOCRv2ForCausalLM,
+)
+
+# vLLM's DFlash config wrapper derives this architecture name from the target
+# architecture. Keep the draft adapter in this plugin so a pip-installed vLLM
+# needs no source-tree patch to resolve it.
+ModelRegistry.register_model(
+    "DFlashMonkeyOCRv2ForCausalLM",
+    "modeling.modeling_monkeyocrv2_dflash_vllm:"
+    "DFlashMonkeyOCRv2ForCausalLM",
 )
