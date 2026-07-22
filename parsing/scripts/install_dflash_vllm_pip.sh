@@ -37,9 +37,22 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
-PIP_ARGS=("${PYTHON_BIN}" -m pip install "vllm==${VLLM_VERSION}")
-[[ -n "$INDEX_URL" ]] && PIP_ARGS+=(--index-url "$INDEX_URL")
-"${PIP_ARGS[@]}"
+INSTALLED_VERSION=$("${PYTHON_BIN}" - <<'PY' 2>/dev/null || true
+try:
+    import vllm
+    print(vllm.__version__)
+except Exception:
+    pass
+PY
+)
+
+if [[ "$INSTALLED_VERSION" == "$VLLM_VERSION" ]]; then
+  echo "vLLM ${VLLM_VERSION} is already installed; skipping pip install."
+else
+  PIP_ARGS=("${PYTHON_BIN}" -m pip install "vllm==${VLLM_VERSION}")
+  [[ -n "$INDEX_URL" ]] && PIP_ARGS+=(--index-url "$INDEX_URL")
+  "${PIP_ARGS[@]}"
+fi
 
 CHECK_ARGS=("${PYTHON_BIN}" "$ROOT/parsing/scripts/check_dflash_env.py" "--require-native-dflash")
 [[ -n "$TARGET_MODEL" ]] && CHECK_ARGS+=(--target-model "$TARGET_MODEL")

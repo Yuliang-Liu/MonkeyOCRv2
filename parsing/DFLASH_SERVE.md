@@ -1,60 +1,39 @@
 # MonkeyOCRv2 DFlash vLLM
 
-This directory provides a FlashAttention-backed DFlash speculative decoding
-path for MonkeyOCRv2. Without `--draft-model`, `serve.py` keeps ordinary vLLM
+MonkeyOCRv2 uses native DFlash speculative decoding from `vllm==0.25.1`.
+No vLLM source patch, separate FlashAttention build, or compiled binary is
+included or required. Without `--draft-model`, `serve.py` keeps ordinary vLLM
 serving behavior.
 
-## 1. Install vLLM
+## 1. Install or check vLLM
 
-### Option A: native pip vLLM (preferred)
-
-Recent vLLM releases include the DFlash proposer and FlashAttention backend.
-This path does not apply the bundled patch or compile a local FlashAttention
-extension:
+If vLLM 0.25.1 is not installed, install it and run the environment check:
 
 ```bash
 bash parsing/scripts/install_dflash_vllm_pip.sh \
-  --vllm-version 0.25.1 \
   --python python \
-  --target-model /path/to/MonkeyOCRv2-B-Parsing \
-  --draft-model /path/to/MonkeyOCRv2-B-Parsing-DFlash
+  --target-model ./models/MonkeyOCRv2-B-Parsing \
+  --draft-model ./models/MonkeyOCRv2-B-Parsing-DFlash
 ```
 
-The installer validates native `method=dflash`, the DFlash proposer,
-`FLASH_ATTN`, the vLLM FlashAttention extension, and the MonkeyOCRv2 plugin.
-It fails instead of silently falling back to ordinary decoding. vLLM 0.11.2
-is too old for this native path; use the source-patch path below for that
-version.
-
-### Option B: bundled source patch (legacy fallback)
-
-The bundled patch targets vLLM commit
-`dbc3d9991ab0e5adc0db6a8c71c9059268032a14`. Keep the vLLM checkout and the
-MonkeyOCRv2 checkout in separate directories:
+If `vllm==0.25.1` is already installed, do not reinstall it. Check the native
+runtime and the two model directories directly:
 
 ```bash
-git clone https://github.com/vllm-project/vllm.git /path/to/vllm
-git -C /path/to/vllm checkout dbc3d9991ab0e5adc0db6a8c71c9059268032a14
-cd /path/to/MonkeyOCRv2
+python - <<'PY'
+import vllm
+print(vllm.__version__)
+PY
+
+python parsing/scripts/check_dflash_env.py \
+  --require-native-dflash \
+  --target-model ./models/MonkeyOCRv2-B-Parsing \
+  --draft-model ./models/MonkeyOCRv2-B-Parsing-DFlash
 ```
 
-The installer checks that this worktree is clean before applying the patch,
-then builds the native FlashAttention extension in the same environment as
-vLLM. The FA2 build explicitly allows the changes produced by this bundled
-patch.
-
-```bash
-bash parsing/scripts/install_dflash_vllm.sh \
-  --vllm-source /path/to/vllm \
-  --patch parsing/patches/vllm-dflash.patch \
-  --flash-attn-source /path/to/vllm-flash-attn \
-  --cuda-home /usr/local/cuda \
-  --python python
-```
-
-Use `--skip-fa2-build` only when the same environment already has a validated
-FlashAttention FA2 extension. Do not copy compiled extensions between
-environments.
+The supported native route requires version `0.25.1`, `method=dflash`, the
+native DFlash proposer, and vLLM's bundled `FLASH_ATTN` backend. The check
+fails instead of silently falling back to ordinary decoding.
 
 ## 2. Download the DFlash model
 
@@ -98,11 +77,10 @@ python parsing/serve.py \
   --port 8888
 ```
 
-Use the existing `parsing/parse.py` client or the OpenAI-compatible endpoint
-at `http://127.0.0.1:8888/v1/chat/completions`. The command-line help in
-`parsing/serve.py` is the source of truth for the optional serving parameters;
-the DFlash defaults are 16 speculative tokens and 128 maximum concurrent
-sequences.
+The optional DFlash arguments are documented in `python parsing/serve.py
+--help`: the default proposal block is 16 tokens and the DFlash-only default
+for `--dflash-max-num-seqs` is 128. Override it only after verifying GPU memory
+headroom for the target model and request lengths.
 
 ```bash
 python parsing/parse.py \

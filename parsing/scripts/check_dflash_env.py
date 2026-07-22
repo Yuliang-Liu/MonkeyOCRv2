@@ -6,6 +6,7 @@ from __future__ import annotations
 import argparse
 import importlib
 import inspect
+import json
 import sys
 from pathlib import Path
 
@@ -14,6 +15,42 @@ def check(condition: bool, label: str, detail: str = "") -> bool:
     suffix = f": {detail}" if detail else ""
     print(f"{'PASS' if condition else 'FAIL'} {label}{suffix}")
     return condition
+
+
+def load_config(model_dir: Path) -> dict:
+    config_path = model_dir / "config.json"
+    if not config_path.is_file():
+        raise ValueError(f"missing config.json: {model_dir}")
+    return json.loads(config_path.read_text(encoding="utf-8"))
+
+
+def check_model_compatibility(target_dir: Path, draft_dir: Path) -> list[str]:
+    errors: list[str] = []
+    if not target_dir.is_dir() or not draft_dir.is_dir():
+        return ["target and draft must both be model directories"]
+    if target_dir.resolve() == draft_dir.resolve():
+        return ["target and draft must be different directories"]
+    try:
+        target, draft = load_config(target_dir), load_config(draft_dir)
+    except (OSError, ValueError, json.JSONDecodeError) as exc:
+        return [str(exc)]
+
+    target_arch = target.get("architectures", [])
+    if not any("MonkeyOCRv2" in str(name) for name in target_arch):
+        errors.append(f"target is not a MonkeyOCRv2 parsing model: {target_arch}")
+    dflash_config = draft.get("dflash_config")
+    if not isinstance(dflash_config, dict):
+        errors.append("draft config has no dflash_config")
+    elif dflash_config.get("block_size") != 16:
+        errors.append("draft dflash_config.block_size must be 16")
+    target_vocab = target.get("vocab_size")
+    draft_vocab = draft.get("draft_vocab_size", draft.get("vocab_size"))
+    if target_vocab is None or target_vocab != draft_vocab:
+        errors.append(f"vocab_size mismatch: target={target_vocab}, draft={draft_vocab}")
+    for key in ("eos_token_id", "pad_token_id", "bos_token_id", "image_token_id", "video_token_id"):
+        if key in target and key in draft and target[key] != draft[key]:
+            errors.append(f"{key} mismatch: target={target[key]}, draft={draft[key]}")
+    return errors
 
 
 def main() -> int:
@@ -50,7 +87,8 @@ def main() -> int:
     try:
         import vllm
 
-        print("vLLM version:", getattr(vllm, "__version__", "unknown"))
+        version = getattr(vllm, "__version__", "unknown")
+        print("vLLM version:", version)
         print("vLLM path:", vllm.__file__)
         vllm_path = Path(vllm.__file__).resolve()
         if args.require_native_dflash and args.vllm_source:
@@ -59,6 +97,7 @@ def main() -> int:
             ok &= check(False, "Native vLLM package", f"loaded from source: {vllm_path}")
         elif args.require_native_dflash:
             ok &= check(True, "Native vLLM package", str(vllm_path))
+            ok &= check(version == "0.25.1", "Native vLLM version", version)
         ok &= check(True, "vLLM import")
     except Exception as exc:
         ok &= check(False, "vLLM import", str(exc))
@@ -126,6 +165,11 @@ def main() -> int:
     for label, value in (("target model", args.target_model), ("draft model", args.draft_model)):
         if value:
             ok &= check(Path(value).expanduser().is_dir(), label)
+    if args.target_model and args.draft_model:
+        errors = check_model_compatibility(
+            Path(args.target_model).expanduser(), Path(args.draft_model).expanduser()
+        )
+        ok &= check(not errors, "Target/DFlash model compatibility", "; ".join(errors))
 
     print("STATIC CHECK PASSED" if ok else "STATIC CHECK FAILED")
     print("RUNTIME IMAGE TEST NOT PERFORMED")

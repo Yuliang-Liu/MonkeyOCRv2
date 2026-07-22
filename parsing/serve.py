@@ -3,7 +3,6 @@ import argparse
 import json
 import os
 import socket
-import subprocess
 import sys
 import inspect
 from pathlib import Path
@@ -89,14 +88,12 @@ def ensure_dflash_support() -> None:
         ) from exc
 
 
-def validate_models(parsing_dir: Path, target_model: str, draft_model: str) -> None:
-    checker = parsing_dir / "scripts" / "check_dflash_models.py"
-    result = subprocess.run(
-        [sys.executable, str(checker), "--target-model", target_model, "--draft-model", draft_model],
-        check=False,
-    )
-    if result.returncode:
-        raise SystemExit("Target/DFlash model compatibility check failed")
+def validate_models(target_model: str, draft_model: str) -> None:
+    from scripts.check_dflash_env import check_model_compatibility
+
+    errors = check_model_compatibility(Path(target_model).expanduser(), Path(draft_model).expanduser())
+    if errors:
+        raise SystemExit("Target/DFlash model compatibility check failed: " + "; ".join(errors))
 
 
 def main():
@@ -154,7 +151,7 @@ def main():
         if args.dflash_max_num_seqs <= 0:
             parser.error("--dflash-max-num-seqs must be positive in DFlash mode")
         if args.validate_models:
-            validate_models(Path(__file__).resolve().parent, args.model_path, args.draft_model)
+            validate_models(args.model_path, args.draft_model)
     elif args.validate_models:
         parser.error("--validate-models requires --draft-model")
     if args.draft_model and args.max_num_batched_tokens < 65536:
