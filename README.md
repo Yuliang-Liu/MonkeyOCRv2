@@ -15,6 +15,7 @@
 
 ## News
 * `2026.07.21` 📦 We release [MonkeyDoc v2](https://modelscope.cn/datasets/zenosai/MonkeyDocv2), an open multilingual corpus for document-oriented pretraining. We hope it can serve as a shared data foundation for more transparent, reproducible, and fair comparisons in Document AI.
+* `2026.07.20` 🤗 MonkeyOCRv2 was featured in [Hugging Face Daily Papers](https://huggingface.co/papers/2607.11562) and has entered the Weekly Papers list. Thanks to the community for the support, upvotes, and feedback!
 * `2026.07.11` 🚀 We release [MonkeyOCRv2](https://github.com/Yuliang-Liu/MonkeyOCRv2), including MonkeyOCRv2 vision encoder, MonkeyOCRv2-Parsing for multilingual document parsing, MonkeyOCRv2-Und for efficient document understanding.
 
 ## Use MonkeyOCRv2 as a Vision Backbone
