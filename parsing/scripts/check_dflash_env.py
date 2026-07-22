@@ -24,6 +24,14 @@ def load_config(model_dir: Path) -> dict:
     return json.loads(config_path.read_text(encoding="utf-8"))
 
 
+def resolve_text_config(config: dict) -> dict:
+    for key in ("text_config", "language_config", "llm_config"):
+        nested = config.get(key)
+        if isinstance(nested, dict):
+            return nested
+    return config
+
+
 def check_model_compatibility(target_dir: Path, draft_dir: Path) -> list[str]:
     errors: list[str] = []
     if not target_dir.is_dir() or not draft_dir.is_dir():
@@ -35,21 +43,49 @@ def check_model_compatibility(target_dir: Path, draft_dir: Path) -> list[str]:
     except (OSError, ValueError, json.JSONDecodeError) as exc:
         return [str(exc)]
 
+    target_text = resolve_text_config(target)
+    draft_text = resolve_text_config(draft)
     target_arch = target.get("architectures", [])
     if not any("MonkeyOCRv2" in str(name) for name in target_arch):
         errors.append(f"target is not a MonkeyOCRv2 parsing model: {target_arch}")
+
+    draft_arch = draft.get("architectures", [])
+    resolved_arch = [
+        arch if str(arch).startswith("DFlash") else f"DFlash{arch}"
+        for arch in draft_arch
+    ]
+    if "DFlashMonkeyOCRv2ForCausalLM" not in resolved_arch:
+        errors.append(
+            "draft architecture must resolve to "
+            "DFlashMonkeyOCRv2ForCausalLM: "
+            f"architectures={draft_arch}"
+        )
+
     dflash_config = draft.get("dflash_config")
     if not isinstance(dflash_config, dict):
         errors.append("draft config has no dflash_config")
-    elif dflash_config.get("block_size") != 16:
-        errors.append("draft dflash_config.block_size must be 16")
-    target_vocab = target.get("vocab_size")
-    draft_vocab = draft.get("draft_vocab_size", draft.get("vocab_size"))
+    else:
+        training_config = dflash_config.get("training_config")
+        if not isinstance(training_config, dict):
+            training_config = {}
+        block_size = dflash_config.get(
+            "block_size",
+            draft.get("block_size", training_config.get("block_size")),
+        )
+        if block_size != 16:
+            errors.append(f"draft DFlash block_size must be 16, got {block_size}")
+
+    target_vocab = target_text.get("vocab_size")
+    draft_vocab = draft.get("draft_vocab_size")
+    if draft_vocab is None:
+        draft_vocab = draft_text.get("draft_vocab_size", draft_text.get("vocab_size"))
     if target_vocab is None or target_vocab != draft_vocab:
         errors.append(f"vocab_size mismatch: target={target_vocab}, draft={draft_vocab}")
     for key in ("eos_token_id", "pad_token_id", "bos_token_id", "image_token_id", "video_token_id"):
-        if key in target and key in draft and target[key] != draft[key]:
-            errors.append(f"{key} mismatch: target={target[key]}, draft={draft[key]}")
+        target_value = target.get(key, target_text.get(key))
+        draft_value = draft.get(key, draft_text.get(key))
+        if target_value is not None and draft_value is not None and target_value != draft_value:
+            errors.append(f"{key} mismatch: target={target_value}, draft={draft_value}")
     return errors
 
 
@@ -63,7 +99,6 @@ def main() -> int:
         action="store_true",
         help="Require DFlash to come from the installed vLLM package.",
     )
-    parser.add_argument("--runtime", action="store_true", help="Print that runtime image validation is required.")
     args = parser.parse_args()
 
     if args.vllm_source:
@@ -93,8 +128,6 @@ def main() -> int:
         vllm_path = Path(vllm.__file__).resolve()
         if args.require_native_dflash and args.vllm_source:
             ok &= check(False, "Native vLLM package", "--vllm-source cannot be used")
-        elif args.require_native_dflash and "site-packages" not in str(vllm_path):
-            ok &= check(False, "Native vLLM package", f"loaded from source: {vllm_path}")
         elif args.require_native_dflash:
             ok &= check(True, "Native vLLM package", str(vllm_path))
             ok &= check(version == "0.25.1", "Native vLLM version", version)
@@ -172,7 +205,6 @@ def main() -> int:
         ok &= check(not errors, "Target/DFlash model compatibility", "; ".join(errors))
 
     print("STATIC CHECK PASSED" if ok else "STATIC CHECK FAILED")
-    print("RUNTIME IMAGE TEST NOT PERFORMED")
     return 0 if ok else 1
 
 

@@ -112,7 +112,15 @@ def main():
     parser.add_argument("--tensor-parallel-size", "--tp", type=int, default=1)
     parser.add_argument("--gpu-memory-utilization", type=float, default=0.5)
     parser.add_argument("--max-model-len", "--max_model_len", type=int, default=16384)
-    parser.add_argument("--max-num-batched-tokens", type=int, default=16384)
+    parser.add_argument(
+        "--max-num-batched-tokens",
+        type=int,
+        default=16384,
+        help=(
+            "Scheduler token budget; in DFlash mode the resolved value is "
+            "bounded by max_num_seqs * max_model_len and printed."
+        ),
+    )
     parser.add_argument(
         "--target-attention-backend",
         choices=("", "FLASH_ATTN"),
@@ -167,11 +175,17 @@ def main():
     if args.draft_model:
         # DFlash needs enough scheduler capacity to verify a block, but vLLM
         # cannot safely schedule more tokens than max_num_seqs * max_model_len.
+        requested_tokens = args.max_num_batched_tokens
         args.max_num_batched_tokens = resolve_dflash_batch_tokens(
             args.max_num_batched_tokens,
             args.dflash_max_num_seqs,
             args.max_model_len,
         )
+        if args.max_num_batched_tokens != requested_tokens:
+            print(
+                "DFlash adjusted --max-num-batched-tokens: "
+                f"{requested_tokens} -> {args.max_num_batched_tokens}"
+            )
     ensure_port_available(args.host, args.port)
 
     parsing_dir = Path(__file__).resolve().parent

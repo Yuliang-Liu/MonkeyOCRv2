@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: Apache-2.0
-"""MonkeyOCRv2 DFlash draft adapter for vLLM.
+"""MonkeyOCRv2 DFlash draft adapter for native vLLM.
 
 MonkeyOCRv2 parsing uses a multimodal target model. A DFlash draft does not
 need to execute the visual tower: the
@@ -96,8 +96,8 @@ def _restore_hf_config(vllm_config: VllmConfig, original_hf_config) -> None:
     vllm_config.speculative_config.draft_model_config.hf_config = original_hf_config
 
 
-class Qwen25VLDFlashForConditionalGeneration(DFlashQwen3ForCausalLM):
-    """DFlash draft adapter for Qwen2.5-VL / MonkeyOCR-Pro Recognition."""
+class DFlashMonkeyOCRv2ForCausalLM(DFlashQwen3ForCausalLM):
+    """DFlash draft adapter for the MonkeyOCRv2 parsing target."""
 
     def __init__(self, *, vllm_config: VllmConfig, prefix: str = ""):
         original_hf_config, text_config = _as_text_dflash_config(vllm_config)
@@ -170,9 +170,3 @@ class Qwen25VLDFlashForConditionalGeneration(DFlashQwen3ForCausalLM):
             remapped.append((name, tensor))
 
         return super().load_weights(remapped)
-
-
-DFlashQwen25VLForConditionalGeneration = Qwen25VLDFlashForConditionalGeneration
-MonkeyOCRv2DFlashForConditionalGeneration = Qwen25VLDFlashForConditionalGeneration
-DFlashQwen25VLDFlashForConditionalGeneration = Qwen25VLDFlashForConditionalGeneration
-DFlashMonkeyOCRv2ForCausalLM = Qwen25VLDFlashForConditionalGeneration

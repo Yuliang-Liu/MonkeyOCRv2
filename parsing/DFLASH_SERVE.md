@@ -5,35 +5,18 @@ No vLLM source patch, separate FlashAttention build, or compiled binary is
 included or required. Without `--draft-model`, `serve.py` keeps ordinary vLLM
 serving behavior.
 
-## 1. Install or check vLLM
+## 1. Install vLLM
 
-If vLLM 0.25.1 is not installed, install it and run the environment check:
+Install vLLM without model arguments. The model directories are checked only
+after the DFlash model is downloaded:
 
 ```bash
 bash parsing/scripts/install_dflash_vllm_pip.sh \
-  --python python \
-  --target-model ./models/MonkeyOCRv2-B-Parsing \
-  --draft-model ./models/MonkeyOCRv2-B-Parsing-DFlash
+  --python python
 ```
 
-If `vllm==0.25.1` is already installed, do not reinstall it. Check the native
-runtime and the two model directories directly:
-
-```bash
-python - <<'PY'
-import vllm
-print(vllm.__version__)
-PY
-
-python parsing/scripts/check_dflash_env.py \
-  --require-native-dflash \
-  --target-model ./models/MonkeyOCRv2-B-Parsing \
-  --draft-model ./models/MonkeyOCRv2-B-Parsing-DFlash
-```
-
-The supported native route requires version `0.25.1`, `method=dflash`, the
-native DFlash proposer, and vLLM's bundled `FLASH_ATTN` backend. The check
-fails instead of silently falling back to ordinary decoding.
+If `vllm==0.25.1` is already installed, skip installation and continue with
+model download.
 
 ## 2. Download the DFlash model
 
@@ -54,7 +37,26 @@ python parsing/scripts/download_dflash_model.py \
   --output-dir ./models/MonkeyOCRv2-B-Parsing-DFlash
 ```
 
-## 3. Start and call the service
+## 3. Check the environment and models
+
+```bash
+python - <<'PY'
+import vllm
+print(vllm.__version__)
+PY
+
+python parsing/scripts/check_dflash_env.py \
+  --require-native-dflash \
+  --target-model ./models/MonkeyOCRv2-B-Parsing \
+  --draft-model ./models/MonkeyOCRv2-B-Parsing-DFlash
+```
+
+The supported native route requires version `0.25.1`, `method=dflash`, the
+native DFlash proposer, a draft architecture that resolves to
+`DFlashMonkeyOCRv2ForCausalLM`, and vLLM's bundled `FLASH_ATTN` backend. The
+check fails instead of silently falling back to ordinary decoding.
+
+## 4. Start and call the service
 
 Ordinary vLLM serving:
 
@@ -79,8 +81,10 @@ python parsing/serve.py \
 
 The optional DFlash arguments are documented in `python parsing/serve.py
 --help`: the default proposal block is 16 tokens and the DFlash-only default
-for `--dflash-max-num-seqs` is 128. Override it only after verifying GPU memory
-headroom for the target model and request lengths.
+for `--dflash-max-num-seqs` is 128. In DFlash mode, `serve.py` may adjust
+`--max-num-batched-tokens` up to 65536, but never above
+`--dflash-max-num-seqs * --max-model-len`; the resolved value is printed.
+Override the sequence limit only after verifying GPU memory headroom.
 
 ```bash
 python parsing/parse.py \
