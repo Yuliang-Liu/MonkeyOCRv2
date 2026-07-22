@@ -101,9 +101,9 @@ def main():
     parser.add_argument("--max-num-batched-tokens", type=int, default=16384)
     parser.add_argument(
         "--target-attention-backend",
-        choices=("", "FLASH_ATTN", "FLASHINFER"),
+        choices=("", "FLASH_ATTN"),
         default=os.getenv("MOCR2_TARGET_ATTENTION_BACKEND", ""),
-        help="Optional global target attention backend. Leave empty for vLLM default.",
+        help="Target attention backend; use FLASH_ATTN for the validated DFlash path.",
     )
     parser.add_argument(
         "--draft-model",
@@ -118,8 +118,9 @@ def main():
     )
     parser.add_argument(
         "--dflash-attention-backend",
+        choices=("FLASH_ATTN",),
         default=os.getenv("MOCR2_DFLASH_ATTENTION_BACKEND", "FLASH_ATTN"),
-        help="Attention backend passed only for DFlash. Set an empty value to leave vLLM's default.",
+        help="DFlash attention backend. FLASH_ATTN is the supported backend.",
     )
     parser.add_argument(
         "--dflash-max-num-seqs",
@@ -137,11 +138,6 @@ def main():
     )
     parser.add_argument("extra_args", nargs=argparse.REMAINDER, help="Extra arguments passed to vLLM serve")
     args = parser.parse_args()
-
-    if args.dflash_attention_backend not in {"", "FLASH_ATTN", "FLASHINFER"}:
-        parser.error("--dflash-attention-backend must be empty, FLASH_ATTN, or FLASHINFER")
-    if args.target_attention_backend not in {"", "FLASH_ATTN", "FLASHINFER"}:
-        parser.error("--target-attention-backend must be empty, FLASH_ATTN, or FLASHINFER")
 
     ensure_model_path(args.model_path)
     if args.draft_model:

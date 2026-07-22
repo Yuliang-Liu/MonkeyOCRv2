@@ -15,8 +15,6 @@ Options:
   --vllm-source DIR          Clean vLLM git worktree (required)
   --patch FILE               DFlash patch (default: parsing/patches/vllm-dflash.patch)
   --base-commit SHA          Expected clean vLLM commit
-  --backend BACKEND          FLASH_ATTN or FLASHINFER (default: FLASHINFER)
-  --flashinfer-wheel-dir DIR Local FlashInfer wheel directory
   --python PYTHON            Python executable (default: python)
   --skip-fa2-build           Do not build FA2 (only for a prevalidated environment)
   --flash-attn-source DIR    Local vllm-flash-attn source for FA2 build
@@ -29,8 +27,6 @@ EOF
 VLLM_SOURCE=""
 PATCH_FILE="$DEFAULT_PATCH"
 BASE_COMMIT="$DEFAULT_BASE_COMMIT"
-BACKEND="FLASHINFER"
-FLASHINFER_WHEEL_DIR=""
 PYTHON_BIN="python"
 SKIP_FA2_BUILD=0
 FLASH_ATTN_SOURCE=""
@@ -42,8 +38,6 @@ while [[ $# -gt 0 ]]; do
     --vllm-source) VLLM_SOURCE=${2:?missing value}; shift 2 ;;
     --patch) PATCH_FILE=${2:?missing value}; shift 2 ;;
     --base-commit) BASE_COMMIT=${2:?missing value}; shift 2 ;;
-    --backend) BACKEND=${2:?missing value}; shift 2 ;;
-    --flashinfer-wheel-dir) FLASHINFER_WHEEL_DIR=${2:?missing value}; shift 2 ;;
     --python) PYTHON_BIN=${2:?missing value}; shift 2 ;;
     --skip-fa2-build) SKIP_FA2_BUILD=1; shift ;;
     --flash-attn-source) FLASH_ATTN_SOURCE=${2:?missing value}; shift 2 ;;
@@ -55,10 +49,6 @@ while [[ $# -gt 0 ]]; do
 done
 
 [[ -n "$VLLM_SOURCE" ]] || { echo "--vllm-source is required" >&2; exit 2; }
-[[ "$BACKEND" == "FLASH_ATTN" || "$BACKEND" == "FLASHINFER" ]] || {
-  echo "--backend must be FLASH_ATTN or FLASHINFER" >&2
-  exit 2
-}
 [[ -d "$VLLM_SOURCE/.git" ]] || {
   echo "vLLM source is not a git worktree: $VLLM_SOURCE" >&2
   exit 1
@@ -81,20 +71,7 @@ git -C "$VLLM_SOURCE" apply --check --whitespace=error "$PATCH_FILE"
 git -C "$VLLM_SOURCE" apply --whitespace=error "$PATCH_FILE"
 echo "DFlash patch applied."
 
-if [[ "$BACKEND" == "FLASHINFER" ]]; then
-  if ! "$PYTHON_BIN" -c 'import flashinfer' >/dev/null 2>&1; then
-    [[ -n "$FLASHINFER_WHEEL_DIR" ]] || {
-      echo "FlashInfer is missing; provide --flashinfer-wheel-dir." >&2
-      exit 1
-    }
-    mapfile -t WHEELS < <(find "$FLASHINFER_WHEEL_DIR" -maxdepth 1 -type f -iname 'flashinfer*.whl' | sort)
-    ((${#WHEELS[@]} > 0)) || { echo "No FlashInfer wheel found." >&2; exit 1; }
-    "$PYTHON_BIN" -m pip install --no-index --no-deps "${WHEELS[@]}"
-  fi
-  "$PYTHON_BIN" -c 'import flashinfer; print("FlashInfer import OK", getattr(flashinfer, "__version__", "unknown"))'
-fi
-
-if [[ "$BACKEND" == "FLASH_ATTN" && "$SKIP_FA2_BUILD" -eq 0 ]]; then
+if [[ "$SKIP_FA2_BUILD" -eq 0 ]]; then
   [[ -n "$FLASH_ATTN_SOURCE" ]] || { echo "--flash-attn-source is required for FA2 build." >&2; exit 1; }
   [[ -n "$CUDA_HOME_ARG" ]] || { echo "--cuda-home is required for FA2 build." >&2; exit 1; }
   BUILD_ARGS=(

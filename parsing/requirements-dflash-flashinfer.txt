@@ -1,8 +1,0 @@
-# Optional dependencies for an offline FlashInfer DFlash environment.
-# Install only from a local wheel/cache; this file does not download anything.
-flashinfer-python
-ninja
-packaging
-
-# FlashAttention is intentionally not listed here. The FlashAttention route
-# reuses the backend already provided by the selected vLLM environment.

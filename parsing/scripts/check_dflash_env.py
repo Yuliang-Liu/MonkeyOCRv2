@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Check a local vLLM, backend, and MonkeyOCRv2 DFlash environment."""
+"""Check a local vLLM, FlashAttention, and MonkeyOCRv2 DFlash environment."""
 
 from __future__ import annotations
 
@@ -10,9 +10,6 @@ import sys
 from pathlib import Path
 
 
-BACKENDS = ("FLASH_ATTN", "FLASHINFER")
-
-
 def check(condition: bool, label: str, detail: str = "") -> bool:
     suffix = f": {detail}" if detail else ""
     print(f"{'PASS' if condition else 'FAIL'} {label}{suffix}")
@@ -21,7 +18,6 @@ def check(condition: bool, label: str, detail: str = "") -> bool:
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--backend", choices=BACKENDS, default="FLASHINFER")
     parser.add_argument("--target-model")
     parser.add_argument("--draft-model")
     parser.add_argument("--vllm-source")
@@ -65,10 +61,10 @@ def main() -> int:
     try:
         from vllm.v1.attention.backends.registry import AttentionBackendEnum
 
-        getattr(AttentionBackendEnum, args.backend)
-        ok &= check(True, f"Backend enum {args.backend}")
+        getattr(AttentionBackendEnum, "FLASH_ATTN")
+        ok &= check(True, "Backend enum FLASH_ATTN")
     except Exception as exc:
-        ok &= check(False, f"Backend enum {args.backend}", str(exc))
+        ok &= check(False, "Backend enum FLASH_ATTN", str(exc))
 
     try:
         dflash = importlib.import_module("vllm.v1.spec_decode.dflash")
@@ -95,20 +91,13 @@ def main() -> int:
     except Exception as exc:
         ok &= check(False, "DFlash draft model adapter import", str(exc))
 
-    if args.backend == "FLASHINFER":
-        try:
-            flashinfer = importlib.import_module("flashinfer")
-            ok &= check(True, "FlashInfer import", getattr(flashinfer, "__version__", "unknown"))
-        except Exception as exc:
-            ok &= check(False, "FlashInfer import", str(exc))
-    else:
-        try:
-            interface = importlib.import_module("vllm.vllm_flash_attn.flash_attn_interface")
-            available = bool(getattr(interface, "FA2_AVAILABLE", False))
-            reason = getattr(interface, "FA2_UNAVAILABLE_REASON", "")
-            ok &= check(available, "FlashAttention FA2 extension import", reason)
-        except Exception as exc:
-            ok &= check(False, "FlashAttention FA2 extension import", str(exc))
+    try:
+        interface = importlib.import_module("vllm.vllm_flash_attn.flash_attn_interface")
+        available = bool(getattr(interface, "FA2_AVAILABLE", False))
+        reason = getattr(interface, "FA2_UNAVAILABLE_REASON", "")
+        ok &= check(available, "FlashAttention FA2 extension import", reason)
+    except Exception as exc:
+        ok &= check(False, "FlashAttention FA2 extension import", str(exc))
 
     for label, value in (("target model", args.target_model), ("draft model", args.draft_model)):
         if value:

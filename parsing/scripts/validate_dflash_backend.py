@@ -17,9 +17,6 @@ from urllib.error import URLError
 from urllib.request import Request, urlopen
 
 
-BACKENDS = ("FLASH_ATTN", "FLASHINFER")
-
-
 def http_json(url: str, payload: dict | None = None, timeout: float = 5.0) -> dict:
     data = None
     headers = {}
@@ -30,7 +27,7 @@ def http_json(url: str, payload: dict | None = None, timeout: float = 5.0) -> di
         return json.loads(response.read().decode())
 
 
-def build_command(args, serve_py: Path, draft_backend: str | None, target_backend: str) -> list[str]:
+def build_command(args, serve_py: Path) -> list[str]:
     command = [
         sys.executable,
         str(serve_py),
@@ -41,15 +38,14 @@ def build_command(args, serve_py: Path, draft_backend: str | None, target_backen
         "--port",
         str(args.port),
     ]
-    if target_backend:
-        command.extend(["--target-attention-backend", target_backend])
+    command.extend(["--target-attention-backend", "FLASH_ATTN"])
     if args.mode == "dflash":
         command.extend(
             [
                 "--draft-model",
                 str(Path(args.draft_model).expanduser()),
                 "--dflash-attention-backend",
-                str(draft_backend),
+                "FLASH_ATTN",
                 "--validate-models",
             ]
         )
@@ -59,9 +55,6 @@ def build_command(args, serve_py: Path, draft_backend: str | None, target_backen
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--mode", choices=("baseline", "dflash"), required=True)
-    parser.add_argument("--backend", choices=BACKENDS, required=True)
-    parser.add_argument("--target-backend", choices=("", *BACKENDS), default="")
-    parser.add_argument("--draft-backend", choices=BACKENDS, default=None)
     parser.add_argument("--model-path", required=True)
     parser.add_argument("--draft-model")
     parser.add_argument("--image", required=True)
@@ -83,21 +76,16 @@ def main() -> int:
         print("SKIPPED: target, draft, or image path is missing", file=sys.stderr)
         return 2
 
-    target_backend = args.target_backend
-    draft_backend = args.draft_backend or (args.backend if args.mode == "dflash" else None)
-    if args.mode == "baseline" and not target_backend:
-        target_backend = args.backend
-
     log_dir = Path(args.log_dir).expanduser()
     log_dir.mkdir(parents=True, exist_ok=True)
     report_path = Path(args.report).expanduser()
     report_path.parent.mkdir(parents=True, exist_ok=True)
-    server_log = log_dir / f"serve_{args.mode}_{args.backend.lower()}.log"
+    server_log = log_dir / f"serve_{args.mode}_flashattn.log"
     serve_py = Path(__file__).resolve().parents[1] / "serve.py"
     env = os.environ.copy()
     env["PYTHONPATH"] = str(serve_py.parent) + os.pathsep + env.get("PYTHONPATH", "")
     env["PATH"] = str(Path(sys.executable).parent) + os.pathsep + env.get("PATH", "")
-    command = build_command(args, serve_py, draft_backend, target_backend)
+    command = build_command(args, serve_py)
     started = time.time()
     process = None
     status = "FAIL"
@@ -155,8 +143,8 @@ def main() -> int:
     log_text = server_log.read_text(encoding="utf-8", errors="replace") if server_log.exists() else ""
     has_forbidden_fallback = "fallback" in log_text.lower() and args.mode == "dflash"
     markers = {
-        "target_backend": not target_backend or target_backend in log_text,
-        "draft_backend": args.mode == "baseline" or str(draft_backend) in log_text,
+        "target_backend": "FLASH_ATTN" in log_text,
+        "draft_backend": args.mode == "baseline" or "FLASH_ATTN" in log_text,
         "method_dflash": args.mode == "baseline" or "method=dflash" in log_text or "method='dflash'" in log_text,
         "speculative_config": args.mode == "baseline" or "SpeculativeConfig" in log_text,
         "baseline_no_speculation": args.mode != "baseline" or "SpeculativeConfig" not in log_text,
@@ -168,8 +156,8 @@ def main() -> int:
 
     lines = [
         f"mode: {args.mode}",
-        f"target_backend: {target_backend or 'vLLM default'}",
-        f"draft_backend: {draft_backend or 'none'}",
+        "target_backend: FLASH_ATTN",
+        f"draft_backend: {'FLASH_ATTN' if args.mode == 'dflash' else 'none'}",
         f"status: {status}",
         f"elapsed_s: {time.time() - started:.2f}",
         f"method_dflash: {markers['method_dflash']}",
