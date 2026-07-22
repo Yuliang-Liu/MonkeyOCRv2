@@ -96,6 +96,16 @@ def validate_models(target_model: str, draft_model: str) -> None:
         raise SystemExit("Target/DFlash model compatibility check failed: " + "; ".join(errors))
 
 
+def resolve_dflash_batch_tokens(
+    requested: int, max_num_seqs: int, max_model_len: int
+) -> int:
+    """Keep the DFlash scheduler capacity consistent with its sequence limit."""
+
+    if requested >= 65536:
+        return min(requested, max_num_seqs * max_model_len)
+    return min(65536, max_num_seqs * max_model_len)
+
+
 def main():
     parser = argparse.ArgumentParser(description="Start vLLM serve for MonkeyOCRv2.")
     parser.add_argument("--model-path", "-m", default='../model_weight/MonkeyOCRv2-B-Parsing')
@@ -154,9 +164,14 @@ def main():
             validate_models(args.model_path, args.draft_model)
     elif args.validate_models:
         parser.error("--validate-models requires --draft-model")
-    if args.draft_model and args.max_num_batched_tokens < 65536:
-        # DFlash needs enough scheduler capacity to verify a 16-token block.
-        args.max_num_batched_tokens = 65536
+    if args.draft_model:
+        # DFlash needs enough scheduler capacity to verify a block, but vLLM
+        # cannot safely schedule more tokens than max_num_seqs * max_model_len.
+        args.max_num_batched_tokens = resolve_dflash_batch_tokens(
+            args.max_num_batched_tokens,
+            args.dflash_max_num_seqs,
+            args.max_model_len,
+        )
     ensure_port_available(args.host, args.port)
 
     parsing_dir = Path(__file__).resolve().parent
