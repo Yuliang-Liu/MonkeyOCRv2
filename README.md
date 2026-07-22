@@ -45,7 +45,7 @@ MonkeyDoc v2 is currently the largest document image pre-training image-text pai
 pip install modelscope
 modelscope download --dataset zenosai/MonkeyDocv2 --local_dir ./MonkeyDocv2
 ```
-Downloading the complete dataset requires approximately 10 TB of disk space. We recommend ensuring that you have at least 11 TB of available storage before starting the download.
+After processing and compression, downloading the dataset currently requires approximately 10 TB of disk space. We recommend having at least 11 TB of available storage before starting the download to ensure sufficient space throughout the process.
 
 ## Model Zoo
 
