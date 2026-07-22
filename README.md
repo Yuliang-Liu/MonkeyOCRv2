@@ -245,9 +245,9 @@ python download_model.py -t modelscope -n MonkeyOCRv2-B # or MonkeyOCRv2-S / Mon
 ```bash
 cd vision
 # For MonkeyOCRv2-B and MonkeyOCRv2-S
-python extract_feature.py
+python extract_feature.py -m ../model_weight/MonkeyOCRv2-B -i ../images_test/ar.JPEG
 # For MonkeyOCRv2-AS
-python extract_feature_vitae.py
+python extract_feature_vitae.py -m ../model_weight/MonkeyOCRv2-AS -i ../images_test/ar.JPEG
 ```
 
 ### Document Parsing
