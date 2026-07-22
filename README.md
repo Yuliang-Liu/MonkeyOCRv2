@@ -40,11 +40,12 @@ encoder = AutoModel.from_pretrained(
 See the Vision Encoder [Quick Start](https://github.com/Yuliang-Liu/MonkeyOCRv2#vision-encoder) for installation and feature-extraction examples. If you adapt MonkeyOCRv2 to a new task or domain, feel free to open an issue or pull request and share the results.
 
 ## MonkeyDoc v2
-MonkeyDoc v2 is currently the largest document image pre-training image-text pair dataset, comprising 113 million document images across 17 languages. The open-sourcing of MonkeyDoc v2 is still underway. So far, we have released all 52 million synthetic samples and 35 million real-world samples derived from FinePDF. Additional real-world data from other sources is currently being organized and will be released progressively. You can download the full datset as follows:
+MonkeyDoc v2 is currently the largest document image pre-training image-text pair dataset, comprising 113 million document images across 17 languages. The open-sourcing of MonkeyDoc v2 is still underway. So far, we have released 52 million synthetic samples and 41 million real-world samples. You can download the full datset as follows:
 ```bash
 pip install modelscope
 modelscope download --dataset zenosai/MonkeyDocv2 --local_dir ./MonkeyDocv2
 ```
+Downloading the complete dataset requires approximately 10 TB of disk space. We recommend ensuring that you have at least 11 TB of available storage before starting the download.
 
 ## Model Zoo
 
