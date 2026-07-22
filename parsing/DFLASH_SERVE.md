@@ -6,9 +6,19 @@ serving behavior.
 
 ## 1. Install the vLLM patch
 
-Use a clean local vLLM checkout at the commit expected by the patch. The
-installer is offline and builds the native FlashAttention extension in the
-same environment as vLLM.
+The bundled patch targets vLLM commit
+`dbc3d9991ab0e5adc0db6a8c71c9059268032a14`. Prepare that checkout first:
+
+```bash
+git clone https://github.com/vllm-project/vllm.git
+cd vllm
+git checkout dbc3d9991ab0e5adc0db6a8c71c9059268032a14
+```
+
+The installer checks that this worktree is clean before applying the patch,
+then builds the native FlashAttention extension in the same environment as
+vLLM. The FA2 build explicitly allows the changes produced by this bundled
+patch.
 
 ```bash
 bash parsing/scripts/install_dflash_vllm.sh \
@@ -70,3 +80,12 @@ at `http://127.0.0.1:8888/v1/chat/completions`. The command-line help in
 `parsing/serve.py` is the source of truth for the optional serving parameters;
 the DFlash defaults are 16 speculative tokens and 128 maximum concurrent
 sequences.
+
+```bash
+python parsing/parse.py \
+  --input-path ./images_test \
+  --output-path ./output/dflash \
+  --model-path ./models/MonkeyOCRv2-B-Parsing \
+  --server-url http://127.0.0.1:8888 \
+  --served-model-name MonkeyOCRv2
+```

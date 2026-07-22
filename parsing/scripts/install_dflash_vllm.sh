@@ -79,6 +79,7 @@ if [[ "$SKIP_FA2_BUILD" -eq 0 ]]; then
     --flash-attn-source "$FLASH_ATTN_SOURCE"
     --python "$PYTHON_BIN"
     --cuda-home "$CUDA_HOME_ARG"
+    --allow-patched-worktree
   )
   [[ -n "$JOBS" ]] && BUILD_ARGS+=(--jobs "$JOBS")
   bash "$ROOT/parsing/scripts/build_vllm_fa2.sh" "${BUILD_ARGS[@]}"

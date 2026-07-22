@@ -11,6 +11,7 @@ an existing .so file.
 
 Options:
   --vllm-source DIR       Existing clean vLLM git worktree (required)
+  --allow-patched-worktree Allow the bundled patch's worktree changes
   --flash-attn-source DIR Existing local vllm-flash-attn source (required)
   --python PYTHON         Python executable (default: python)
   --cuda-home DIR         CUDA toolkit root (optional)
@@ -25,11 +26,13 @@ FLASH_ATTN_SOURCE=""
 PYTHON_BIN="python"
 CUDA_HOME_ARG=""
 MAX_JOBS="$(getconf _NPROCESSORS_ONLN 2>/dev/null || echo 1)"
+ALLOW_PATCHED_WORKTREE=0
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --vllm-source) VLLM_SOURCE=${2:?missing value}; shift 2 ;;
     --flash-attn-source) FLASH_ATTN_SOURCE=${2:?missing value}; shift 2 ;;
+    --allow-patched-worktree) ALLOW_PATCHED_WORKTREE=1; shift ;;
     --python) PYTHON_BIN=${2:?missing value}; shift 2 ;;
     --cuda-home) CUDA_HOME_ARG=${2:?missing value}; shift 2 ;;
     --max-jobs|--jobs) MAX_JOBS=${2:?missing value}; shift 2 ;;
@@ -59,10 +62,13 @@ command -v nvcc >/dev/null || {
 "$PYTHON_BIN" -c 'import torch; assert torch.cuda.is_available(); print(torch.__version__, torch.version.cuda)'
 "$PYTHON_BIN" -c 'import ninja; print("ninja", ninja.__file__)'
 
-if ! git -C "$VLLM_SOURCE" diff --quiet --ignore-submodules; then
+if [[ "$ALLOW_PATCHED_WORKTREE" -eq 0 ]] && ! git -C "$VLLM_SOURCE" diff --quiet --ignore-submodules; then
   echo "Refusing to build from a dirty vLLM worktree." >&2
   git -C "$VLLM_SOURCE" status --short >&2
   exit 1
+fi
+if [[ "$ALLOW_PATCHED_WORKTREE" -eq 1 ]]; then
+  echo "Allowing the worktree changes produced by the bundled DFlash patch."
 fi
 
 echo "vLLM commit: $(git -C "$VLLM_SOURCE" rev-parse HEAD)"
