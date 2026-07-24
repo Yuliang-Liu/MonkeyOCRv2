@@ -14,6 +14,7 @@
 </div>
 
 ## News
+* `2026.07.24` ⚡ We released [MonkeyOCRv2-B-Parsing-DFlash](https://huggingface.co/zenosai/MonkeyOCRv2-B-Parsing-DFlash), enabling vLLM serving with DFlash for up to 2× faster inference.
 * `2026.07.22` 🏆 MonkeyOCRv2-B-Parsing ranks #1 among evaluated open-source models on the official [MDPBench Leaderboard](https://huggingface.co/spaces/Delores-Lin/MDPBench-leaderboard), achieving 83.3 overall across 17 languages, including digital-born and photographed documents.
 * `2026.07.21` 📦 We release [MonkeyDoc v2](https://modelscope.cn/datasets/zenosai/MonkeyDocv2), an open multilingual corpus for document-oriented pretraining. We hope it can serve as a shared data foundation for more transparent, reproducible, and fair comparisons in Document AI.
 * `2026.07.20` 🤗 MonkeyOCRv2 was featured in [Hugging Face Daily Papers](https://huggingface.co/papers/2607.11562) and has entered the Weekly Papers list. Thanks to the community for the support, upvotes, and feedback!
