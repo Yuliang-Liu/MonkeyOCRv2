@@ -111,7 +111,7 @@ def main():
         help="Target attention backend.",
     )
     parser.add_argument(
-        "--draft-model",
+        "--draft-model", "-d",
         type=str,
         help="Optional local path to a MonkeyOCRv2 DFlash draft. Enables DFlash speculative decoding.",
     )

@@ -257,27 +257,44 @@ Install vLLM following its [official guide](https://docs.vllm.ai/en/v0.11.2/gett
 conda create -n MonkeyOCRv2Parsing python=3.10
 conda activate MonkeyOCRv2Parsing
 pip install uv
-uv pip install vllm==0.11.2 --torch-backend=auto -i https://pypi.tuna.tsinghua.edu.cn/simple requests
+uv pip install vllm --extra-index-url https://wheels.vllm.ai/0.25.1/cu129 --extra-index-url https://download.pytorch.org/whl/cu129 -i https://pypi.tuna.tsinghua.edu.cn/simple
 pip install -r parsing/requirements.txt
 ```
+To use DFlash for faster inference, **vLLM 0.25.1** is required, which depends on **CUDA 12.9 or later**.
+
+If your system does not support CUDA 12.9, you can instead install **vLLM 0.11.2** (without DFlash support) by running:
+
+```bash
+uv pip install vllm==0.11.2 --torch-backend=auto -i https://pypi.tuna.tsinghua.edu.cn/simple requests
+```
+
+Inference will still work normally, but DFlash acceleration will not be available.
+
 
 #### 2. Download Model Weights
 Download our model from Huggingface.
 ```bash
 python download_model.py -n MonkeyOCRv2-B-Parsing # or MonkeyOCRv2-S-Parsing
+# use DFlash for faster inference, support MonkeyOCRv2-B-Parsing only for now
+python download_model.py -n MonkeyOCRv2-B-Parsing-DFlash
 ```
 You can also download our model from ModelScope.
 
 ```bash
 pip install modelscope
 python download_model.py -t modelscope -n MonkeyOCRv2-B-Parsing # or MonkeyOCRv2-S-Parsing
+# use DFlash for faster inference, support MonkeyOCRv2-B-Parsing only for now
+python download_model.py -n MonkeyOCRv2-B-Parsing-DFlash
 ```
 
 #### 3. vLLM Serving
 You should start a vLLM service before parsing documents:
 ```bash
 cd parsing
-python serve.py -m ../model_weight/MonkeyOCRv2-B-Parsing -p 8888
+# Serve with DFlash for faster inference
+python serve.py -m ../model_weight/MonkeyOCRv2-B-Parsing -d ../model_weight/MonkeyOCRv2-B-Parsing-DFlash -p 8888
+# Serve without DFlash
+python serve.py -m ../model_weight/MonkeyOCRv2-B-Parsing  -p 8888
 # Show help messages
 python serve.py -h
 ```
