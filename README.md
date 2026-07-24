@@ -1235,6 +1235,9 @@ This multi-expert agreement strategy reduces model-specific annotation errors an
 - **MonkeyDoc**: https://modelscope.cn/datasets/zenosai/MonkeyDoc
 - **MonkeyDoc v2**: https://modelscope.cn/datasets/zenosai/MonkeyDocv2
 
+
+
+
 ## Citation
 If you use any part of this release — the MonkeyOCRv2 encoders, MonkeyOCRv2-Parsing,
 MonkeyOCRv2-Und, the MDPBench benchmark, or the MonkeyDoc v2 dataset — please cite:
@@ -1252,4 +1255,4 @@ MonkeyOCRv2-Und, the MDPBench benchmark, or the MonkeyDoc v2 dataset — please 
 ```
 
 ## Copyright
-We warmly welcome your feedback, suggestions, and contributions, which are essential to the continued development and improvement of our framework. The models are  are released under the [Apache License 2.0](LICENSE) and are free for both research and commercial use. For any questions, please contact us at xbai@hust.edu.cn or ylliu@hust.edu.cn.
+Share reproductions, integrations, and failure cases in [GitHub Discussions](https://github.com/Yuliang-Liu/MonkeyOCRv2/discussions/13). We warmly welcome your feedback, suggestions, and contributions, which are essential to the continued development and improvement of our framework. The models are  are released under the [Apache License 2.0](LICENSE) and are free for both research and commercial use. For any questions, please contact us at xbai@hust.edu.cn or ylliu@hust.edu.cn. 
