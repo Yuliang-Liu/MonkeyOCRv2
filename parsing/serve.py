@@ -11,6 +11,8 @@ from modeling import modeling_monkeyocrv2_vllm  # noqa: F401
 from vllm.entrypoints.cli.main import main as vllm_main
 
 
+PARSING_DIR = Path(__file__).resolve().parent
+
 
 def ensure_model_path(model_path: str):
     path = Path(model_path).expanduser()
@@ -37,6 +39,8 @@ def build_vllm_argv(args) -> list[str]:
         "--port",
         str(args.port),
     ]
+    if args.max_num_seqs:
+        argv.extend(["--max-num-seqs", str(args.max_num_seqs)])
     if args.host:
         argv.extend(["--host", args.host])
 
@@ -49,13 +53,11 @@ def build_vllm_argv(args) -> list[str]:
         speculative_config = {
             "method": "dflash",
             "model": draft_model,
-            "num_speculative_tokens": args.num_speculative_tokens,
+            "num_speculative_tokens": args.dflash_num_speculative_tokens,
         }
         if args.dflash_attention_backend:
             speculative_config["attention_backend"] = args.dflash_attention_backend
         argv.extend(["--speculative-config", json.dumps(speculative_config)])
-        if args.dflash_max_num_seqs:
-            argv.extend(["--max-num-seqs", str(args.dflash_max_num_seqs)])
 
     argv.append("--trust-remote-code")
     return argv
@@ -88,104 +90,55 @@ def ensure_dflash_support() -> None:
         ) from exc
 
 
-def validate_models(target_model: str, draft_model: str) -> None:
-    from scripts.check_dflash_env import check_model_compatibility
-
-    errors = check_model_compatibility(Path(target_model).expanduser(), Path(draft_model).expanduser())
-    if errors:
-        raise SystemExit("Target/DFlash model compatibility check failed: " + "; ".join(errors))
-
-
-def resolve_dflash_batch_tokens(
-    requested: int, max_num_seqs: int, max_model_len: int
-) -> int:
-    """Keep the DFlash scheduler capacity consistent with its sequence limit."""
-
-    if requested >= 65536:
-        return min(requested, max_num_seqs * max_model_len)
-    return min(65536, max_num_seqs * max_model_len)
-
-
 def main():
     parser = argparse.ArgumentParser(description="Start vLLM serve for MonkeyOCRv2.")
-    parser.add_argument("--model-path", "-m", default='../model_weight/MonkeyOCRv2-B-Parsing')
+    parser.add_argument("--model-path", "-m", default=PARSING_DIR.parent / 'model_weight' / 'MonkeyOCRv2-B-Parsing')
     parser.add_argument("--tensor-parallel-size", "--tp", type=int, default=1)
     parser.add_argument("--gpu-memory-utilization", type=float, default=0.5)
-    parser.add_argument("--max-model-len", "--max_model_len", type=int, default=16384)
+    parser.add_argument("--max-model-len", type=int, default=16384)
+    parser.add_argument("--max-num-seqs", type=int, default=128)
     parser.add_argument(
         "--max-num-batched-tokens",
         type=int,
         default=16384,
         help=(
-            "Scheduler token budget; in DFlash mode the resolved value is "
-            "bounded by max_num_seqs * max_model_len and printed."
+            "Scheduler token budget; including speculative tokens."
         ),
     )
     parser.add_argument(
         "--target-attention-backend",
-        choices=("", "FLASH_ATTN"),
-        default=os.getenv("MOCR2_TARGET_ATTENTION_BACKEND", ""),
-        help="Target attention backend; use FLASH_ATTN for the validated DFlash path.",
+        type=str,
+        help="Target attention backend.",
     )
     parser.add_argument(
         "--draft-model",
-        default=os.getenv("MOCR2_DFLASH_DRAFT_MODEL", ""),
+        type=str,
         help="Optional local path to a MonkeyOCRv2 DFlash draft. Enables DFlash speculative decoding.",
     )
     parser.add_argument(
-        "--num-speculative-tokens",
+        "--dflash-num-speculative-tokens",
         type=int,
-        default=int(os.getenv("MOCR2_DFLASH_NUM_SPECULATIVE_TOKENS", "16")),
+        default=16,
         help="DFlash proposal block size. MonkeyOCRv2-B-Parsing-DFlash b16 uses 16.",
     )
     parser.add_argument(
         "--dflash-attention-backend",
-        choices=("FLASH_ATTN",),
-        default=os.getenv("MOCR2_DFLASH_ATTENTION_BACKEND", "FLASH_ATTN"),
-        help="DFlash attention backend. FLASH_ATTN is the supported backend.",
-    )
-    parser.add_argument(
-        "--dflash-max-num-seqs",
-        type=int,
-        default=int(os.getenv("MOCR2_DFLASH_MAX_NUM_SEQS", "128")),
-        help="Maximum concurrent sequences passed only for DFlash. The 24GB-validated setting is 128; set 1024 only on sufficiently large GPUs.",
+        type=str,
+        help="DFlash attention backend.",
     )
     parser.add_argument("--served-model-name", default="MonkeyOCRv2")
     parser.add_argument("--host", default=None)
     parser.add_argument("--port", "-p", type=int, default=8888)
-    parser.add_argument(
-        "--validate-models",
-        action="store_true",
-        help="Validate target/draft config compatibility before starting DFlash.",
-    )
     parser.add_argument("extra_args", nargs=argparse.REMAINDER, help="Extra arguments passed to vLLM serve")
     args = parser.parse_args()
 
     ensure_model_path(args.model_path)
     if args.draft_model:
+        ensure_model_path(args.draft_model)
         ensure_dflash_support()
-        if args.num_speculative_tokens <= 0:
-            parser.error("--num-speculative-tokens must be positive in DFlash mode")
-        if args.dflash_max_num_seqs <= 0:
-            parser.error("--dflash-max-num-seqs must be positive in DFlash mode")
-        if args.validate_models:
-            validate_models(args.model_path, args.draft_model)
-    elif args.validate_models:
-        parser.error("--validate-models requires --draft-model")
-    if args.draft_model:
-        # DFlash needs enough scheduler capacity to verify a block, but vLLM
-        # cannot safely schedule more tokens than max_num_seqs * max_model_len.
-        requested_tokens = args.max_num_batched_tokens
-        args.max_num_batched_tokens = resolve_dflash_batch_tokens(
-            args.max_num_batched_tokens,
-            args.dflash_max_num_seqs,
-            args.max_model_len,
-        )
-        if args.max_num_batched_tokens != requested_tokens:
-            print(
-                "DFlash adjusted --max-num-batched-tokens: "
-                f"{requested_tokens} -> {args.max_num_batched_tokens}"
-            )
+        if args.dflash_num_speculative_tokens <= 0:
+            parser.error("--dflash-num-speculative-tokens must be positive in DFlash mode")
+
     ensure_port_available(args.host, args.port)
 
     parsing_dir = Path(__file__).resolve().parent
