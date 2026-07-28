@@ -10,7 +10,7 @@
 [![GitHub closed issues](https://img.shields.io/github/issues-closed/Yuliang-Liu/MonkeyOCRv2?color=success&label=Issues)](https://github.com/Yuliang-Liu/MonkeyOCRv2/issues?q=is%3Aissue+is%3Aclosed)
 [![Demo](https://img.shields.io/badge/Demo-white.svg)](http://vlrlabmonkey.xyz:8891/)
 
-<img src="asserts/overview.png?raw=true" width="600"/>
+<img src="https://github.com/Yuliang-Liu/MonkeyOCRv2/blob/main/asserts/overview.png?raw=true" width="600"/>
 </div>
 
 ## News
@@ -590,7 +590,7 @@ Our model supports robust document parsing in real-world scenarios across 17 lan
 #### 3. Text detection results on Total-Text, CTW1500, ICDAR2015 and ArT. We follow the training and evaluation protocols of [MMOCR](https://github.com/open-mmlab/mmocr) and [DPText-DETR](https://github.com/ymy-k/DPText-DETR).
 
 <p align="center">
-  <img src="asserts/text_detection.png?raw=true" width="600"/>
+  <img src="https://github.com/Yuliang-Liu/MonkeyOCRv2/blob/main/asserts/text_detection.png?raw=true" width="600"/>
 </p>
 
 
