@@ -8,13 +8,15 @@ import base64
 import requests
 import warnings
 import zipfile
+import traceback
 import threading
 import queue
 import asyncio
 import uuid
 import shutil
+from collections import deque
 from requests import exceptions as requests_exceptions
-from concurrent.futures import ThreadPoolExecutor, as_completed
+from concurrent.futures import Future, ThreadPoolExecutor, as_completed
 from io import BytesIO
 from pathlib import Path
 from dataclasses import dataclass
@@ -54,6 +56,8 @@ ALL_PROMPT = {
     "LAYOUT": "Please output the categories and coordinates of the document elements in reading order.",
     "END2END": "List the document elements in reading order, including their categories, coordinates, and the content of each element.",
 }
+IMAGE_EXTS = {".jpg", ".jpeg", ".png", ".bmp", ".webp", ".tif", ".tiff"}
+INPUT_EXTS = IMAGE_EXTS | {".pdf"}
 
 
 def build_vllm_prompt(question: str) -> str:
@@ -82,7 +86,7 @@ def save_picture_block(image: Image.Image, image_dir: Path, doc_name: str, sub_i
 def save_preprocessed_page(image: Image.Image, preprocessed_dir: Path, doc_name: str, page_idx: int) -> str:
     path = get_preprocessed_page_path(preprocessed_dir, doc_name, page_idx)
     path.parent.mkdir(parents=True, exist_ok=True)
-    image.convert("RGB").save(path, format="PNG")
+    image.convert("RGB").save(path, format="PNG", compress_level=1)
     return str(path)
 
 
@@ -1147,6 +1151,22 @@ def result2md(
     return md_list
 
 
+def _render_pdf_page(pdf, page_idx: int) -> Image.Image:
+    page = pdf[page_idx]
+    try:
+        bitmap = page.render(scale=200 / 72)
+        try:
+            return bitmap.to_pil().convert("RGB")
+        finally:
+            close_bitmap = getattr(bitmap, "close", None)
+            if callable(close_bitmap):
+                close_bitmap()
+    finally:
+        close_page = getattr(page, "close", None)
+        if callable(close_page):
+            close_page()
+
+
 def load_pdf_images(pdf_path: str):
     try:
         import pypdfium2 as pdfium
@@ -1154,13 +1174,28 @@ def load_pdf_images(pdf_path: str):
         raise ImportError("Reading PDF files requires pypdfium2") from e
 
     pdf = pdfium.PdfDocument(pdf_path)
-    pages = []
-    for i in range(len(pdf)):
-        page = pdf[i]
-        bmp = page.render(scale=200/72)
-        pil = bmp.to_pil().convert("RGB")
-        pages.append(pil)
-    return pages
+    try:
+        return [_render_pdf_page(pdf, page_idx) for page_idx in range(len(pdf))]
+    finally:
+        close_pdf = getattr(pdf, "close", None)
+        if callable(close_pdf):
+            close_pdf()
+
+
+def _render_pdf_file_page(pdf_path: str | Path, page_idx: int) -> Image.Image:
+    """Render one PDF page with an isolated document handle for thread safety."""
+    try:
+        import pypdfium2 as pdfium
+    except Exception as exc:
+        raise ImportError("Reading PDF files requires pypdfium2") from exc
+
+    pdf = pdfium.PdfDocument(str(pdf_path))
+    try:
+        return _render_pdf_page(pdf, page_idx)
+    finally:
+        close_pdf = getattr(pdf, "close", None)
+        if callable(close_pdf):
+            close_pdf()
 
 
 def _is_jpeg_source(source) -> bool:
@@ -1257,10 +1292,9 @@ def _list_input_files(input_path: str):
 
 
 def _count_pending_documents(input_path: str, md_dir: Path, skip_processed: bool) -> int:
-    image_ext = {".jpg", ".jpeg", ".png", ".bmp", ".webp", ".tif", ".tiff", ".pdf"}
     total = 0
     for f in _list_input_files(input_path):
-        if f.suffix.lower() not in image_ext:
+        if f.suffix.lower() not in INPUT_EXTS:
             continue
         if skip_processed and (md_dir / f"{f.stem}.md").exists():
             continue
@@ -1269,11 +1303,10 @@ def _count_pending_documents(input_path: str, md_dir: Path, skip_processed: bool
 
 
 def _count_pending_pages(input_path: str, md_dir: Path, skip_processed: bool) -> int:
-    image_ext = {".jpg", ".jpeg", ".png", ".bmp", ".webp", ".tif", ".tiff"}
     total = 0
     for f in _list_input_files(input_path):
         ext = f.suffix.lower()
-        if ext not in image_ext and ext != ".pdf":
+        if ext not in INPUT_EXTS:
             continue
         if skip_processed and (md_dir / f"{f.stem}.md").exists():
             continue
@@ -1295,29 +1328,88 @@ def _count_pending_pages(input_path: str, md_dir: Path, skip_processed: bool) ->
     return total
 
 
-def _iter_input_documents(input_path: str):
-    p = Path(input_path)
-    image_ext = {".jpg", ".jpeg", ".png", ".bmp", ".webp", ".tif", ".tiff"}
-    files = [p] if p.is_file() else sorted([x for x in p.iterdir() if x.is_file()])
-    for f in files:
-        ext = f.suffix.lower()
+def _iter_input_page_events(
+    input_path: str,
+    md_dir: Path,
+    skip_processed: bool,
+    acquire_page_slot,
+    release_page_slot,
+    preprocessed_dir: Path | None = None,
+):
+    doc_id = 0
+    for input_file in _list_input_files(input_path):
+        ext = input_file.suffix.lower()
+        if ext not in INPUT_EXTS:
+            continue
+        if skip_processed and (md_dir / f"{input_file.stem}.md").exists():
+            yield ("skipped",)
+            continue
+
         if ext == ".pdf":
-            pages = load_pdf_images(str(f))
-            yield {
-                "name": f.stem,
-                "image_name": f.name,
-                "image_path": str(f),
-                "images": pages,
-                "pdf_pages": len(pages),
-            }
-        elif ext in image_ext:
-            yield {
-                "name": f.stem,
-                "image_name": f.name,
-                "image_path": str(f),
-                "images": [load_image(str(f))],
+            try:
+                import pypdfium2 as pdfium
+            except Exception as exc:
+                raise ImportError("Reading PDF files requires pypdfium2") from exc
+            pdf = pdfium.PdfDocument(str(input_file))
+            try:
+                page_count = len(pdf)
+                yield ("doc", doc_id, {
+                    "name": input_file.stem,
+                    "image_name": input_file.name,
+                    "image_path": str(input_file),
+                    "pdf_pages": page_count,
+                })
+                for page_idx in range(page_count):
+                    cached_path = None
+                    if preprocessed_dir is not None:
+                        cached_path = get_preprocessed_page_path(
+                            preprocessed_dir, input_file.stem, page_idx
+                        )
+                    if cached_path is not None and skip_processed and cached_path.exists():
+                        yield ("page", doc_id, page_idx, None, str(cached_path), False)
+                        continue
+                    if not acquire_page_slot():
+                        return
+                    try:
+                        image = _render_pdf_page(pdf, page_idx)
+                    except Exception:
+                        release_page_slot()
+                        raise
+                    yield (
+                        "page", doc_id, page_idx, image,
+                        str(cached_path) if cached_path is not None else None,
+                        True,
+                    )
+            finally:
+                close_pdf = getattr(pdf, "close", None)
+                if callable(close_pdf):
+                    close_pdf()
+        else:
+            yield ("doc", doc_id, {
+                "name": input_file.stem,
+                "image_name": input_file.name,
+                "image_path": str(input_file),
                 "pdf_pages": 1,
-            }
+            })
+            cached_path = None
+            if preprocessed_dir is not None:
+                cached_path = get_preprocessed_page_path(preprocessed_dir, input_file.stem, 0)
+            if cached_path is not None and skip_processed and cached_path.exists():
+                yield ("page", doc_id, 0, None, str(cached_path), False)
+            else:
+                if not acquire_page_slot():
+                    return
+                try:
+                    image = load_image(str(input_file))
+                except Exception:
+                    release_page_slot()
+                    raise
+                yield (
+                    "page", doc_id, 0, image,
+                    str(cached_path) if cached_path is not None else None,
+                    True,
+                )
+        doc_id += 1
 
 
 def _doc_image_size(images: list[Image.Image]):
@@ -1348,7 +1440,6 @@ def run_streaming_pipeline(
     sentinel = object()
     page_window = max(1, int(args.page_max_inflight))
     server_window = max(1, int(args.server_max_inflight))
-    preprocess_q = queue.Queue(maxsize=page_window)
     layout_q = queue.Queue(maxsize=page_window)
     rec_q = queue.Queue(maxsize=max(page_window * 8, server_window * 2))
     layout_workers = max(1, min(page_window, server_window))
@@ -1364,6 +1455,7 @@ def run_streaming_pipeline(
         "skipped_docs": 0,
         "submitted_pages": 0,
         "time_pre": 0.0,
+        "time_pre_stage": 0.0,
         "time_parse_requests": 0.0,
         "parse_started_at": None,
         "parse_finished_at": None,
@@ -1375,20 +1467,14 @@ def run_streaming_pipeline(
     pre_pbar = None
     if show_progress_bar and tqdm is not None and total_docs > 0:
         total_pages = _count_pending_pages(args.input_path, md_dir, args.skip_processed)
-        pre_pbar = tqdm(
-            total=total_pages,
-            dynamic_ncols=True,
-            bar_format="{desc} |{bar}| {n_fmt}/{total_fmt}",
-            position=0,
-            leave=True,
-        )
-        pbar = tqdm(
-            total=total_docs,
-            dynamic_ncols=True,
-            bar_format="{desc} |{bar}| {n_fmt}/{total_fmt}",
-            position=1,
-            leave=True,
-        )
+        if not args.skip_preprocess:
+            pre_pbar = tqdm(
+                total=total_pages,
+                dynamic_ncols=True,
+                bar_format="{desc} |{bar}| {n_fmt}/{total_fmt}",
+                position=0,
+                leave=True,
+            )
 
     def maybe_complete(state):
         if state["pending_pages"] == 0 and state["pending_recs"] == 0 and not state["done"]:
@@ -1441,64 +1527,16 @@ def run_streaming_pipeline(
         stop_event.set()
         error_q.put(exc)
 
-    def preprocess_worker():
-        try:
-            batch = []
-            while True:
-                item = get_checked(preprocess_q)
-                if item is sentinel:
-                    break
-                batch.append(item)
-                saw_sentinel = False
-                while len(batch) < max(1, args.preprocess_batch_size):
-                    if stop_event.is_set():
-                        break
-                    try:
-                        nxt = preprocess_q.get(timeout=0.05)
-                    except queue.Empty:
-                        break
-                    if nxt is sentinel:
-                        saw_sentinel = True
-                        break
-                    batch.append(nxt)
-
-                if not batch:
-                    if saw_sentinel:
-                        break
-                    continue
-                t0 = time.time()
-                processed = preprocessor.preprocess_images(
-                    [x["image"] for x in batch],
-                    batch_size=args.preprocess_batch_size,
-                )
-                with lock:
-                    stats["time_pre"] += time.time() - t0
-                for item, image in zip(batch, processed):
-                    item["image"] = image
-                    with lock:
-                        state = states[item["doc_id"]]
-                        state["doc"]["images"][item["page_idx"]] = image
-                        doc_name = state["doc"]["name"]
-                    item["image_path"] = save_preprocessed_page(
-                        image,
-                        out_dir / "preprocessed",
-                        doc_name,
-                        item["page_idx"],
-                    )
-                    put_checked(layout_q, item)
-                    if pre_pbar is not None:
-                        pre_pbar.set_description_str(f"Preprocessing {doc_name}")
-                        pre_pbar.update(1)
-                batch = []
-                if saw_sentinel:
-                    break
-        except Exception as exc:
-            record_worker_error(exc)
-        finally:
-            if not stop_event.is_set():
-                put_sentinels(layout_q, layout_workers)
+    def release_input_page(page):
+        if not isinstance(page, dict):
+            return
+        page.pop("image", None)
+        release_slot = page.pop("_release_input_slot", None)
+        if release_slot is not None:
+            release_slot()
 
     def layout_worker():
+        page = None
         try:
             while True:
                 page = get_checked(layout_q)
@@ -1534,6 +1572,7 @@ def run_streaming_pipeline(
                         for rec in page_recs:
                             add_page_result(state, page["page_idx"], rec)
                         maybe_complete(state)
+                    release_input_page(page)
                     continue
 
                 items = get_layout(model, [img])[0]
@@ -1593,9 +1632,11 @@ def run_streaming_pipeline(
                             "_block_idx": task["block_idx"],
                         })
                     maybe_complete(state)
+                release_input_page(page)
                 for task in rec_tasks:
                     put_checked(rec_q, task)
         except Exception as exc:
+            release_input_page(page)
             record_worker_error(exc)
 
     def recognition_worker():
@@ -1681,23 +1722,11 @@ def run_streaming_pipeline(
             record_worker_error(exc)
 
     t_start = time.time()
-    writer = threading.Thread(target=writer_worker, name="mocr2-writer", daemon=True)
-    writer.start()
-    pre_thread = None
-    if not args.skip_preprocess:
-        pre_thread = threading.Thread(target=preprocess_worker, name="mocr2-preprocess", daemon=True)
-        pre_thread.start()
-
-    layout_threads = [
-        threading.Thread(target=layout_worker, name=f"mocr2-layout-{i}", daemon=True)
-        for i in range(layout_workers)
-    ]
-    rec_threads = [
-        threading.Thread(target=recognition_worker, name=f"mocr2-rec-{i}", daemon=True)
-        for i in range(rec_workers)
-    ]
-    for th in layout_threads + rec_threads:
-        th.start()
+    writer = None
+    reader_thread = None
+    preprocess_save_threads = []
+    layout_threads = []
+    rec_threads = []
 
     def join_checked(th):
         while th.is_alive():
@@ -1709,24 +1738,234 @@ def run_streaming_pipeline(
         while th.is_alive() and time.time() < deadline:
             th.join(timeout=0.2)
 
+    def start_input_reader(preprocessed_dir=None):
+        input_q = queue.Queue(maxsize=page_window)
+        raw_page_slots = threading.BoundedSemaphore(page_window)
+
+        def acquire_page_slot():
+            while not stop_event.is_set():
+                if raw_page_slots.acquire(timeout=0.2):
+                    return True
+                raise_if_worker_failed()
+            return False
+
+        def reader_worker():
+            try:
+                events = _iter_input_page_events(
+                    args.input_path,
+                    md_dir,
+                    args.skip_processed,
+                    acquire_page_slot,
+                    raw_page_slots.release,
+                    preprocessed_dir,
+                )
+                for event in events:
+                    try:
+                        put_checked(input_q, event)
+                    except Exception:
+                        if event[0] == "page" and event[5]:
+                            raw_page_slots.release()
+                        raise
+            except Exception as exc:
+                record_worker_error(exc)
+            finally:
+                if not stop_event.is_set():
+                    put_checked(input_q, sentinel)
+
+        thread = threading.Thread(
+            target=reader_worker,
+            name="mocr2-input-reader",
+            daemon=True,
+        )
+        thread.start()
+        return input_q, raw_page_slots, thread
+
     pipeline_error = None
     try:
-        doc_idx = 0
-        for doc in _iter_input_documents(args.input_path):
-            if args.skip_processed and (md_dir / f"{doc['name']}.md").exists():
-                stats["skipped_docs"] += 1
-                continue
-            doc_id = doc_idx
-            doc_idx += 1
+        prepared_docs = None
+        if not args.skip_preprocess:
+            preprocess_stage_started = time.time()
+            prepared_docs = []
+            prepared_docs_by_id = {}
+            preprocess_batch = []
+            preprocess_target = min(max(1, args.preprocess_batch_size), page_window)
+            warm_pages = 0
+            preprocess_save_q = queue.Queue(maxsize=page_window)
+            preprocess_save_workers = max(1, min(4, page_window, os.cpu_count() or 1))
+            progress_lock = threading.Lock()
+
+            def update_preprocess_progress(doc_name):
+                if pre_pbar is not None:
+                    with progress_lock:
+                        pre_pbar.set_description_str(f"Preprocessing {doc_name}")
+                        pre_pbar.update(1)
+
+            def preprocess_save_worker():
+                try:
+                    while True:
+                        item = get_checked(preprocess_save_q)
+                        if item is sentinel:
+                            break
+                        save_preprocessed_page(
+                            item["image"],
+                            out_dir / "preprocessed",
+                            item["doc_name"],
+                            item["page_idx"],
+                        )
+                        update_preprocess_progress(item["doc_name"])
+                except Exception as exc:
+                    record_worker_error(exc)
+
+            def flush_preprocess_batch():
+                nonlocal preprocess_batch, warm_pages
+                if not preprocess_batch:
+                    return
+                current_batch = preprocess_batch
+                preprocess_batch = []
+                try:
+                    t0 = time.time()
+                    output_batch = preprocessor.preprocess_images(
+                        [item["image"] for item in current_batch],
+                        batch_size=args.preprocess_batch_size,
+                    )
+                    stats["time_pre"] += time.time() - t0
+                    if len(output_batch) != len(current_batch):
+                        raise RuntimeError(
+                            "Preprocessor returned a different number of images than it received."
+                        )
+                    for item, image in zip(current_batch, output_batch):
+                        if item["slot_acquired"]:
+                            raw_page_slots.release()
+                            item["slot_acquired"] = False
+                        item.pop("image", None)
+                        item["doc"]["_image_sizes"][item["page_idx"]] = [
+                            int(image.size[0]), int(image.size[1])
+                        ]
+                        if warm_pages < page_window:
+                            item["doc"]["preprocessed_paths"][item["page_idx"]] = image
+                            warm_pages += 1
+                        put_checked(preprocess_save_q, {
+                            "image": image,
+                            "doc_name": item["doc"]["name"],
+                            "page_idx": item["page_idx"],
+                        })
+                finally:
+                    for item in current_batch:
+                        if item["slot_acquired"]:
+                            raw_page_slots.release()
+
+            preprocess_save_threads = [
+                threading.Thread(
+                    target=preprocess_save_worker,
+                    name=f"mocr2-preprocess-writer-{i}",
+                    daemon=True,
+                )
+                for i in range(preprocess_save_workers)
+            ]
+            for thread in preprocess_save_threads:
+                thread.start()
+            input_q, raw_page_slots, reader_thread = start_input_reader(
+                out_dir / "preprocessed"
+            )
+            while True:
+                event = get_checked(input_q)
+                if event is sentinel:
+                    break
+                if event[0] == "skipped":
+                    stats["skipped_docs"] += 1
+                    continue
+                if event[0] == "doc":
+                    _, doc_id, doc = event
+                    prepared_doc = {
+                        "name": doc["name"],
+                        "image_name": doc["image_name"],
+                        "image_path": doc["image_path"],
+                        "images": [None] * doc["pdf_pages"],
+                        "preprocessed_paths": [None] * doc["pdf_pages"],
+                        "_image_sizes": [None] * doc["pdf_pages"],
+                        "pdf_pages": doc["pdf_pages"],
+                    }
+                    prepared_docs.append(prepared_doc)
+                    prepared_docs_by_id[doc_id] = prepared_doc
+                    continue
+
+                _, doc_id, page_idx, image, cached_path, slot_acquired = event
+                prepared_doc = prepared_docs_by_id[doc_id]
+                prepared_doc["preprocessed_paths"][page_idx] = cached_path
+                if image is None:
+                    cached_image = load_image(cached_path)
+                    prepared_doc["_image_sizes"][page_idx] = [
+                        int(cached_image.size[0]), int(cached_image.size[1])
+                    ]
+                    if warm_pages < page_window:
+                        prepared_doc["preprocessed_paths"][page_idx] = cached_image
+                        warm_pages += 1
+                    update_preprocess_progress(prepared_doc["name"])
+                    continue
+
+                preprocess_batch.append({
+                    "doc": prepared_doc,
+                    "page_idx": page_idx,
+                    "image": image,
+                    "slot_acquired": slot_acquired,
+                })
+                if len(preprocess_batch) >= preprocess_target:
+                    flush_preprocess_batch()
+
+            flush_preprocess_batch()
+            join_checked(reader_thread)
+            reader_thread = None
+            put_sentinels(preprocess_save_q, len(preprocess_save_threads))
+            for thread in preprocess_save_threads:
+                join_checked(thread)
+            preprocess_save_threads = []
+            stats["time_pre_stage"] = time.time() - preprocess_stage_started
+
+            for doc in prepared_docs:
+                image_sizes = doc.pop("_image_sizes")
+                if any(size is None for size in image_sizes):
+                    raise RuntimeError(f"Preprocessing did not produce every page for {doc['name']}.")
+                doc["image_size"] = image_sizes[0] if len(image_sizes) == 1 else image_sizes
+
+            if pre_pbar is not None:
+                pre_pbar.set_description_str("Preprocessing complete")
+                pre_pbar.close()
+                pre_pbar = None
+            if torch.cuda.is_available():
+                torch.cuda.empty_cache()
+
+        if show_progress_bar and tqdm is not None and total_docs > 0:
+            pbar = tqdm(
+                total=total_docs,
+                dynamic_ncols=True,
+                bar_format="{desc} |{bar}| {n_fmt}/{total_fmt}",
+                position=0,
+                leave=True,
+            )
+
+        writer = threading.Thread(target=writer_worker, name="mocr2-writer", daemon=True)
+        writer.start()
+        layout_threads = [
+            threading.Thread(target=layout_worker, name=f"mocr2-layout-{i}", daemon=True)
+            for i in range(layout_workers)
+        ]
+        rec_threads = [
+            threading.Thread(target=recognition_worker, name=f"mocr2-rec-{i}", daemon=True)
+            for i in range(rec_workers)
+        ]
+        for th in layout_threads + rec_threads:
+            th.start()
+
+        def register_document(doc_id, doc, doc_idx):
             page_count = doc["pdf_pages"]
             if pbar is not None:
                 pbar.set_description_str(f"Parsing {doc['name']}")
             elif verbose:
-                print(f"Streaming document {doc_idx}: {doc['name']} ({page_count} pages)")
+                print(f"Streaming document {doc_idx + 1}: {doc['name']} ({page_count} pages)")
             with lock:
                 states[doc_id] = {
                     "doc_id": doc_id,
-                    "doc_idx": doc_id,
+                    "doc_idx": doc_idx,
                     "doc": doc,
                     "layouts": [[] for _ in range(page_count)],
                     "page_results": [[] for _ in range(page_count)],
@@ -1737,41 +1976,68 @@ def run_streaming_pipeline(
                 }
                 stats["submitted_docs"] += 1
                 stats["submitted_pages"] += page_count
-            for page_idx, image in enumerate(doc["images"]):
+
+        if prepared_docs is not None:
+            for doc_idx, doc in enumerate(prepared_docs):
+                doc_id = doc_idx
+                register_document(doc_id, doc, doc_idx)
+                for page_idx, source in enumerate(doc["preprocessed_paths"]):
+                    image = load_image(source) if isinstance(source, str) else source
+                    if args.draw_layout:
+                        with lock:
+                            states[doc_id]["doc"]["images"][page_idx] = image
+                    put_checked(layout_q, {
+                        "doc_id": doc_id,
+                        "page_idx": page_idx,
+                        "image": image,
+                    })
+        else:
+            input_q, raw_page_slots, reader_thread = start_input_reader()
+            direct_docs = {}
+            while True:
+                event = get_checked(input_q)
+                if event is sentinel:
+                    break
+                if event[0] == "skipped":
+                    stats["skipped_docs"] += 1
+                    continue
+                if event[0] == "doc":
+                    _, doc_id, doc_meta = event
+                    page_count = doc_meta["pdf_pages"]
+                    doc = {
+                        **doc_meta,
+                        "images": [None] * page_count,
+                        "_image_sizes": [None] * page_count,
+                    }
+                    direct_docs[doc_id] = doc
+                    register_document(doc_id, doc, len(direct_docs) - 1)
+                    continue
+
+                _, doc_id, page_idx, image, _, slot_acquired = event
+                doc = direct_docs[doc_id]
+                doc["_image_sizes"][page_idx] = [int(image.size[0]), int(image.size[1])]
+                if args.draw_layout:
+                    with lock:
+                        states[doc_id]["doc"]["images"][page_idx] = image
+                if all(size is not None for size in doc["_image_sizes"]):
+                    image_sizes = doc.pop("_image_sizes")
+                    doc["image_size"] = image_sizes[0] if len(image_sizes) == 1 else image_sizes
                 page = {
                     "doc_id": doc_id,
                     "page_idx": page_idx,
                     "image": image,
                 }
-                cached_preprocessed = None
-                if not args.skip_preprocess and args.skip_processed:
-                    cached_path = get_preprocessed_page_path(out_dir / "preprocessed", doc["name"], page_idx)
-                    if cached_path.exists():
-                        cached_preprocessed = load_image(str(cached_path))
-
-                if cached_preprocessed is not None:
-                    page["image"] = cached_preprocessed
-                    with lock:
-                        states[doc_id]["doc"]["images"][page_idx] = cached_preprocessed
+                if slot_acquired:
+                    page["_release_input_slot"] = raw_page_slots.release
+                try:
                     put_checked(layout_q, page)
-                    if pre_pbar is not None:
-                        pre_pbar.set_description_str(f"Preprocessing {doc['name']}")
-                        pre_pbar.update(1)
-                elif args.skip_preprocess:
-                    put_checked(layout_q, page)
-                    if pre_pbar is not None:
-                        pre_pbar.set_description_str(f"Preprocessing {doc['name']}")
-                        pre_pbar.update(1)
-                else:
-                    put_checked(preprocess_q, page)
+                except Exception:
+                    release_input_page(page)
+                    raise
+            join_checked(reader_thread)
+            reader_thread = None
 
-        if args.skip_preprocess:
-            put_sentinels(layout_q, len(layout_threads))
-        else:
-            put_checked(preprocess_q, sentinel)
-
-        if pre_thread is not None:
-            join_checked(pre_thread)
+        put_sentinels(layout_q, len(layout_threads))
         for th in layout_threads:
             join_checked(th)
         put_sentinels(rec_q, len(rec_threads))
@@ -1780,23 +2046,23 @@ def run_streaming_pipeline(
     except Exception as exc:
         pipeline_error = exc
         stop_event.set()
-        for q in (preprocess_q, layout_q, rec_q, done_q):
+        for q in (layout_q, rec_q, done_q):
             for _ in range(max(1, layout_workers + rec_workers + 2)):
                 try:
                     q.put_nowait(sentinel)
                 except queue.Full:
                     break
     finally:
+        if reader_thread is not None:
+            join_best_effort(reader_thread)
+        for thread in preprocess_save_threads:
+            join_best_effort(thread)
         if pipeline_error is None and error_q.empty():
-            if pre_thread is not None:
-                join_checked(pre_thread)
             for th in layout_threads:
                 join_checked(th)
             for th in rec_threads:
                 join_checked(th)
         else:
-            if pre_thread is not None:
-                join_best_effort(pre_thread)
             for th in layout_threads:
                 join_best_effort(th)
             for th in rec_threads:
@@ -1808,9 +2074,9 @@ def run_streaming_pipeline(
             done_q.put_nowait(sentinel)
         except queue.Full:
             pass
-        if pipeline_error is None and error_q.empty():
+        if writer is not None and pipeline_error is None and error_q.empty():
             join_checked(writer)
-        else:
+        elif writer is not None:
             join_best_effort(writer)
         if pbar is not None:
             pbar.close()
@@ -1836,7 +2102,8 @@ def run_streaming_pipeline(
         time_parse = stats["parse_finished_at"] - stats["parse_started_at"]
     if verbose:
         print(
-            f"Preprocessing time: {stats['time_pre']:.2f} s, "
+            f"Preprocess stage time: {stats['time_pre_stage']:.2f} s, "
+            f"inference time: {stats['time_pre']:.2f} s, "
             f"parsing time: {time_parse:.2f} s"
         )
     if verbose and stats["skipped_docs"]:
@@ -1969,10 +2236,6 @@ TASK_PROMPTS = {
     "formula": ALL_PROMPT["Formula"],
     "table": ALL_PROMPT["Table"],
 }
-IMAGE_EXTS = {".jpg", ".jpeg", ".png", ".bmp", ".webp", ".tif", ".tiff"}
-INPUT_EXTS = IMAGE_EXTS | {".pdf"}
-
-
 def configure_runtime(config: BackendConfig):
     os.environ["MOCR2_MAX_PIXELS"] = str(config.max_pixels)
     os.environ["MOCR2_SERVER_MAX_INFLIGHT"] = str(config.server_max_inflight)
@@ -2035,7 +2298,6 @@ def run_pipeline(
     config: PipelineConfig,
     *,
     backend_manager: BackendManager = DEFAULT_BACKEND_MANAGER,
-    parse_semaphore=None,
 ):
     configure_runtime(config.backend)
     dirs = prepare_output_dirs(
@@ -2048,31 +2310,17 @@ def run_pipeline(
     args = build_pipeline_args(config)
 
     started = time.time()
-    if parse_semaphore is None:
-        run_streaming_pipeline(
-            args,
-            preprocessor,
-            model,
-            dirs.out_dir,
-            dirs.json_dir,
-            dirs.md_dir,
-            dirs.image_dir,
-            show_progress_bar=config.show_progress_bar,
-            verbose=config.verbose,
-        )
-    else:
-        with parse_semaphore:
-            run_streaming_pipeline(
-                args,
-                preprocessor,
-                model,
-                dirs.out_dir,
-                dirs.json_dir,
-                dirs.md_dir,
-                dirs.image_dir,
-                show_progress_bar=config.show_progress_bar,
-                verbose=config.verbose,
-            )
+    run_streaming_pipeline(
+        args,
+        preprocessor,
+        model,
+        dirs.out_dir,
+        dirs.json_dir,
+        dirs.md_dir,
+        dirs.image_dir,
+        show_progress_bar=config.show_progress_bar,
+        verbose=config.verbose,
+    )
 
     return {
         "out_dir": dirs.out_dir,
@@ -2082,6 +2330,534 @@ def run_pipeline(
         "elapsed": time.time() - started,
         "all_results_path": dirs.out_dir / "all_results.json",
     }
+
+
+class _BatchCompletion:
+    def __init__(self, size: int):
+        self._remaining = size
+        self._lock = threading.Lock()
+        self._event = threading.Event()
+        if size == 0:
+            self._event.set()
+
+    def done(self):
+        with self._lock:
+            self._remaining -= 1
+            if self._remaining <= 0:
+                self._event.set()
+
+    def wait(self, stop_event: threading.Event):
+        while not self._event.wait(0.2):
+            if stop_event.is_set():
+                raise RuntimeError("Service pipeline stopped while waiting for a parse batch.")
+
+
+class _ServiceJob:
+    def __init__(self, config: PipelineConfig, dirs: OutputDirs):
+        self.config = config
+        self.dirs = dirs
+        self.future = Future()
+        self.lock = threading.Lock()
+        self.doc = None
+        self.page_results = []
+        self.pending_pages = 0
+        self.picture_counts = [0]
+        self.failed = False
+        self.started_at = time.time()
+
+    def initialize(self, input_path: Path, page_count: int):
+        with self.lock:
+            self.doc = {
+                "name": input_path.stem,
+                "image_name": input_path.name,
+                "image_path": str(input_path),
+                "images": [None] * page_count,
+                "image_size": [None] * page_count,
+                "pdf_pages": page_count,
+            }
+            self.page_results = [[] for _ in range(page_count)]
+            self.pending_pages = page_count
+
+    def fail(self, exc: Exception):
+        with self.lock:
+            if self.failed or self.future.done():
+                return False
+            self.failed = True
+            self.future.set_exception(exc)
+            return True
+
+
+class ServicePipelinePool:
+    """Shared request scheduler used by the demo and API services."""
+
+    def __init__(
+        self,
+        backend_config: BackendConfig,
+        page_max_inflight: int,
+        *,
+        backend_manager: BackendManager = DEFAULT_BACKEND_MANAGER,
+        batch_wait_seconds: float = 1.0,
+        pdf_render_workers: int = 4,
+        debug: bool = False,
+    ):
+        configure_runtime(backend_config)
+        self.backend_config = backend_config
+        self.page_window = max(1, int(page_max_inflight))
+        self.batch_wait_seconds = max(0.0, float(batch_wait_seconds))
+        self.pdf_render_workers = max(1, min(int(pdf_render_workers), self.page_window))
+        self.debug = bool(debug)
+        self.preprocessor, self.model = backend_manager.get(backend_config)
+        self.stop_event = threading.Event()
+        self.request_q = queue.Queue()
+        self.preprocess_q = queue.Queue(maxsize=self.page_window)
+        self.parse_q = queue.Queue(maxsize=self.page_window)
+        self.preprocess_slots = threading.BoundedSemaphore(self.page_window)
+        self.parse_slots = threading.BoundedSemaphore(self.page_window)
+        self.pdf_render_executor = ThreadPoolExecutor(max_workers=self.pdf_render_workers)
+        self.page_executor = ThreadPoolExecutor(max_workers=self.page_window)
+        self.output_executor = ThreadPoolExecutor(max_workers=max(1, min(4, self.page_window)))
+        self._sentinel = object()
+        self._threads = [
+            threading.Thread(target=self._request_worker, name="mocr2-service-reader", daemon=True),
+            threading.Thread(target=self._preprocess_worker, name="mocr2-service-preprocess", daemon=True),
+            threading.Thread(target=self._parse_worker, name="mocr2-service-parse", daemon=True),
+        ]
+        for thread in self._threads:
+            thread.start()
+
+    def _report_error(self, stage: str, exc: Exception):
+        if not self.debug:
+            return
+        print(
+            f"[ServicePipelinePool:{stage}] {type(exc).__name__}: {exc}",
+            flush=True,
+        )
+        traceback.print_exception(type(exc), exc, exc.__traceback__)
+
+    def _fail_job(self, job: _ServiceJob, stage: str, exc: Exception):
+        if job.fail(exc):
+            self._report_error(stage, exc)
+
+    def _put(self, target_q, item):
+        while not self.stop_event.is_set():
+            try:
+                target_q.put(item, timeout=0.2)
+                return
+            except queue.Full:
+                continue
+        raise RuntimeError("Service pipeline is shutting down.")
+
+    def _acquire_slot(self, slot):
+        while not self.stop_event.is_set():
+            if slot.acquire(timeout=0.2):
+                return
+        raise RuntimeError("Service pipeline is shutting down.")
+
+    def _enqueue_parse(self, page, *, slot_reserved=False):
+        if not slot_reserved:
+            self._acquire_slot(self.parse_slots)
+        try:
+            self._put(self.parse_q, page)
+        except Exception:
+            self.parse_slots.release()
+            raise
+
+    def run(self, config: PipelineConfig):
+        job = None
+        try:
+            if config.backend != self.backend_config:
+                raise ValueError("ServicePipelinePool backend configuration cannot change per request.")
+            dirs = prepare_output_dirs(
+                config.output_path,
+                # Service requests pass preprocessed PIL images directly to parsing.
+                skip_preprocess=True,
+                draw_layout=config.draw_layout,
+                use_base64=config.use_base64,
+            )
+            job = _ServiceJob(config, dirs)
+            self._put(self.request_q, job)
+            return job.future.result()
+        except Exception as exc:
+            if job is None or not job.failed:
+                self._report_error("submit", exc)
+            raise
+
+    def run_single_task(self, input_path, output_path, task):
+        return _run_single_task_with_model(
+            input_path,
+            output_path,
+            task,
+            self.model,
+        )
+
+    def _create_read_state(self, job: _ServiceJob):
+        input_path = Path(job.config.input_path)
+        if not input_path.is_file() or input_path.suffix.lower() not in INPUT_EXTS:
+            raise ValueError(f"Service parsing expects one PDF or image file: {input_path}")
+        if input_path.suffix.lower() == ".pdf":
+            try:
+                import pypdfium2 as pdfium
+            except Exception as exc:
+                raise ImportError("Reading PDF files requires pypdfium2") from exc
+            pdf = pdfium.PdfDocument(str(input_path))
+            try:
+                page_count = len(pdf)
+            finally:
+                close_pdf = getattr(pdf, "close", None)
+                if callable(close_pdf):
+                    close_pdf()
+        else:
+            page_count = 1
+        if page_count == 0:
+            raise ValueError(f"PDF contains no pages: {input_path}")
+        job.initialize(input_path, page_count)
+        return {
+            "job": job,
+            "input_path": input_path,
+            "is_pdf": input_path.suffix.lower() == ".pdf",
+            "page_count": page_count,
+            "next_page": 0,
+            "pending": [],
+        }
+
+    @staticmethod
+    def _try_acquire_slot(slot) -> bool:
+        return slot.acquire(blocking=False)
+
+    def _release_read_state(self, state):
+        slot = self.parse_slots if state["job"].config.backend.skip_preprocess else self.preprocess_slots
+        for _, future in state["pending"]:
+            future.cancel()
+            slot.release()
+        state["pending"].clear()
+
+    def _submit_read(self, state) -> bool:
+        if state["next_page"] >= state["page_count"]:
+            return False
+        if len(state["pending"]) >= self.pdf_render_workers:
+            return False
+        job = state["job"]
+        slot = self.parse_slots if job.config.backend.skip_preprocess else self.preprocess_slots
+        if not self._try_acquire_slot(slot):
+            return False
+        page_idx = state["next_page"]
+        state["next_page"] += 1
+        try:
+            if state["is_pdf"]:
+                future = self.pdf_render_executor.submit(
+                    _render_pdf_file_page, state["input_path"], page_idx
+                )
+            else:
+                future = self.pdf_render_executor.submit(load_image, str(state["input_path"]))
+        except Exception:
+            slot.release()
+            raise
+        state["pending"].append((page_idx, future))
+        return True
+
+    def _enqueue_rendered_page(self, state) -> bool:
+        for pending_idx, (page_idx, future) in enumerate(state["pending"]):
+            if not future.done():
+                continue
+            state["pending"].pop(pending_idx)
+            job = state["job"]
+            slot = self.parse_slots if job.config.backend.skip_preprocess else self.preprocess_slots
+            try:
+                image = future.result()
+            except Exception:
+                slot.release()
+                raise
+            page = {"job": job, "page_idx": page_idx, "image": image}
+            if job.config.backend.skip_preprocess:
+                self._enqueue_parse(page, slot_reserved=True)
+            else:
+                try:
+                    self._put(self.preprocess_q, page)
+                except Exception:
+                    self.preprocess_slots.release()
+                    raise
+            return True
+        return False
+
+    def _request_worker(self):
+        active = deque()
+        while not self.stop_event.is_set():
+            made_progress = False
+            while True:
+                try:
+                    job = self.request_q.get_nowait()
+                except queue.Empty:
+                    break
+                if job is self._sentinel:
+                    continue
+                try:
+                    state = self._create_read_state(job)
+                    active.append(state)
+                    made_progress = True
+                except Exception as exc:
+                    self._fail_job(job, "request-reader", exc)
+
+            for _ in range(len(active)):
+                state = active.popleft()
+                job = state["job"]
+                try:
+                    if job.failed:
+                        self._release_read_state(state)
+                        continue
+                    # One submission and one completion per request per round keeps
+                    # large PDFs from monopolizing the shared page window.
+                    made_progress = self._submit_read(state) or made_progress
+                    made_progress = self._enqueue_rendered_page(state) or made_progress
+                    if state["next_page"] < state["page_count"] or state["pending"]:
+                        active.append(state)
+                except Exception as exc:
+                    self._release_read_state(state)
+                    self._fail_job(job, "request-reader", exc)
+
+            if not made_progress:
+                try:
+                    job = self.request_q.get(timeout=0.02)
+                except queue.Empty:
+                    continue
+                if job is not self._sentinel:
+                    try:
+                        state = self._create_read_state(job)
+                        active.append(state)
+                    except Exception as exc:
+                        self._fail_job(job, "request-reader", exc)
+
+        for state in active:
+            self._release_read_state(state)
+
+    def _preprocess_worker(self):
+        if self.preprocessor is None:
+            return
+        saw_sentinel = False
+        while not self.stop_event.is_set() and not saw_sentinel:
+            try:
+                first = self.preprocess_q.get(timeout=0.2)
+            except queue.Empty:
+                continue
+            if first is self._sentinel:
+                break
+            batch = [first]
+            deadline = time.monotonic() + self.batch_wait_seconds
+            while len(batch) < self.page_window:
+                timeout = deadline - time.monotonic()
+                if timeout <= 0:
+                    break
+                try:
+                    item = self.preprocess_q.get(timeout=timeout)
+                except queue.Empty:
+                    break
+                if item is self._sentinel:
+                    saw_sentinel = True
+                    break
+                batch.append(item)
+
+            active = []
+            for page in batch:
+                if page["job"].failed:
+                    self.preprocess_slots.release()
+                else:
+                    active.append(page)
+            if not active:
+                continue
+            try:
+                images = self.preprocessor.preprocess_images(
+                    [page["image"] for page in active],
+                    batch_size=self.backend_config.preprocess_batch_size,
+                )
+                if len(images) != len(active):
+                    raise RuntimeError("Preprocessor returned an unexpected number of pages.")
+                for page in active:
+                    self.preprocess_slots.release()
+                    page["preprocess_slot_released"] = True
+                for page, image in zip(active, images):
+                    page["image"] = image
+
+                completion = _BatchCompletion(len(active))
+                for page in active:
+                    page["batch_completion"] = completion
+                    self._enqueue_parse(page)
+                completion.wait(self.stop_event)
+            except Exception as exc:
+                for page in active:
+                    if not page.get("preprocess_slot_released"):
+                        self.preprocess_slots.release()
+                    self._fail_job(page["job"], "preprocess", exc)
+
+    def _parse_worker(self):
+        try:
+            while not self.stop_event.is_set():
+                try:
+                    page = self.parse_q.get(timeout=0.2)
+                except queue.Empty:
+                    continue
+                if page is self._sentinel:
+                    break
+                self.page_executor.submit(self._parse_page, page)
+        except Exception as exc:
+            self._report_error("parse-dispatcher", exc)
+            self.stop_event.set()
+
+    def _parse_page(self, page):
+        job = page["job"]
+        completion = page.get("batch_completion")
+        try:
+            if job.failed:
+                return
+            image = page["image"]
+            page_idx = page["page_idx"]
+            if job.config.end2end:
+                if job.config.retry_repeat:
+                    raw = batch_inference_with_repeat_retry(
+                        self.model,
+                        [image],
+                        [ALL_PROMPT["END2END"]],
+                        max_tokens=None,
+                        max_retries=job.config.retry_repeat_max_retries,
+                    )[0]
+                else:
+                    raw = self.model.batch_inference(
+                        [image], [ALL_PROMPT["END2END"]], max_tokens=None
+                    )[0]
+                records, layouts = parse_end2end_output(raw, image.size)
+                for record in records:
+                    record["page_num"] = page_idx + 1
+            else:
+                layouts = get_layout(self.model, [image])[0]
+                tasks = self._build_service_tasks(page_idx, image, layouts)
+                infer_tasks = [task for task in tasks if task["need_infer"]]
+                if infer_tasks:
+                    infer_images = [task["image"] for task in infer_tasks]
+                    questions = [task["question"] for task in infer_tasks]
+                    if job.config.retry_repeat:
+                        outputs = batch_inference_with_repeat_retry(
+                            self.model,
+                            infer_images,
+                            questions,
+                            max_tokens=5000,
+                            max_retries=job.config.retry_repeat_max_retries,
+                        )
+                    else:
+                        outputs = self.model.batch_inference(
+                            infer_images, questions, max_tokens=5000
+                        )
+                    raw_by_block = {
+                        task["block_idx"]: raw for task, raw in zip(infer_tasks, outputs)
+                    }
+                else:
+                    raw_by_block = {}
+                with job.lock:
+                    page_to_pdf = [0] * job.doc["pdf_pages"]
+                    records = []
+                    for task in tasks:
+                        content = _format_block_content(
+                            task,
+                            raw_by_block.get(task["block_idx"], ""),
+                            page_to_pdf,
+                            [job.doc["name"]],
+                            job.picture_counts,
+                            job.config.use_base64,
+                            job.dirs.image_dir,
+                        )
+                        records.append({
+                            "bbox": task["bbox"],
+                            "label": task["label"],
+                            "content": content,
+                            "page_num": page_idx + 1,
+                        })
+            self._complete_page(job, page_idx, image.size, records)
+        except Exception as exc:
+            self._fail_job(job, "parse-page", exc)
+        finally:
+            if completion is not None:
+                completion.done()
+            self.parse_slots.release()
+
+    @staticmethod
+    def _build_service_tasks(page_idx, image, layouts):
+        width, height = image.size
+        tasks = []
+        for block_idx, item in enumerate(layouts):
+            x1, y1, x2, y2 = item["bbox"]
+            x1 = max(0, min(int(round(x1)), max(0, width - 1)))
+            y1 = max(0, min(int(round(y1)), max(0, height - 1)))
+            x2 = max(x1 + 1, min(int(round(x2)), width))
+            y2 = max(y1 + 1, min(int(round(y2)), height))
+            label = item["label"]
+            tasks.append({
+                "image": image.crop((x1, y1, x2, y2)),
+                "bbox": [x1, y1, x2, y2],
+                "label": label,
+                "question": ALL_PROMPT.get(label, ""),
+                "need_infer": label in ALL_PROMPT,
+                "page_idx": page_idx,
+                "block_idx": block_idx,
+            })
+        return tasks
+
+    def _complete_page(self, job, page_idx, image_size, records):
+        should_finalize = False
+        with job.lock:
+            if job.failed:
+                return
+            job.doc["image_size"][page_idx] = [int(image_size[0]), int(image_size[1])]
+            job.page_results[page_idx] = records
+            job.pending_pages -= 1
+            should_finalize = job.pending_pages == 0
+        if should_finalize:
+            self.output_executor.submit(self._finalize_job, job)
+
+    def _finalize_job(self, job):
+        if job.failed or job.future.done():
+            return
+        try:
+            with job.lock:
+                results = [record for page in job.page_results for record in page]
+                image_sizes = job.doc["image_size"]
+                job.doc["image_size"] = image_sizes[0] if len(image_sizes) == 1 else image_sizes
+                record = build_result_record(job.doc, results)
+            name = job.doc["name"]
+            (job.dirs.json_dir / f"{name}.json").write_text(
+                json.dumps(record, ensure_ascii=False, indent=1), encoding="utf-8"
+            )
+            result2md(
+                [name],
+                [results],
+                save_dir=str(job.dirs.md_dir),
+                keep_header_footer=job.config.keep_header_footer,
+            )
+            all_results_path = job.dirs.out_dir / "all_results.json"
+            all_results_path.write_text(
+                json.dumps([record], ensure_ascii=False, indent=1), encoding="utf-8"
+            )
+            job.future.set_result({
+                "out_dir": job.dirs.out_dir,
+                "json_dir": job.dirs.json_dir,
+                "md_dir": job.dirs.md_dir,
+                "image_dir": job.dirs.image_dir,
+                "elapsed": time.time() - job.started_at,
+                "all_results_path": all_results_path,
+            })
+        except Exception as exc:
+            self._fail_job(job, "output-writer", exc)
+
+    def close(self):
+        if self.stop_event.is_set():
+            return
+        self.stop_event.set()
+        for target_q in (self.request_q, self.preprocess_q, self.parse_q):
+            try:
+                target_q.put_nowait(self._sentinel)
+            except queue.Full:
+                pass
+        for thread in self._threads:
+            thread.join(timeout=5)
+        self.pdf_render_executor.shutdown(wait=True)
+        self.page_executor.shutdown(wait=True)
+        self.output_executor.shutdown(wait=True)
 
 
 def load_all_results(out_dir: str | Path):
@@ -2123,7 +2899,7 @@ def _load_task_images(input_file: str | Path):
     raise ValueError(f"Unsupported file type for single task recognition: {input_file}")
 
 
-def _format_single_task_markdown(task: str, doc_name: str, outputs: list[str]):
+def _format_single_task_markdown(outputs: list[str]):
     if not outputs:
         return ""
     if len(outputs) == 1:
@@ -2133,79 +2909,76 @@ def _format_single_task_markdown(task: str, doc_name: str, outputs: list[str]):
         for idx, raw in enumerate(outputs, 1):
             parts.append(f"## Page {idx}\n\n{(raw or '').strip()}")
         content = "\n\n".join(parts).strip()
-    if task == "formula" and content and len(outputs) == 1 and not content.lstrip().startswith("$$"):
-        content = "$$\n" + content + "\n$$"
     return content + ("\n" if content else "")
 
 
-def run_single_task_recognition(
-    input_path: str | Path,
-    output_path: str | Path,
-    task: str,
-    backend_config: BackendConfig,
-    *,
-    backend_manager: BackendManager = DEFAULT_BACKEND_MANAGER,
-    parse_semaphore=None,
-):
+def _format_single_task_outputs(task: str, outputs: list[str]) -> list[str]:
+    label = {"text": "Text", "formula": "Formula", "table": "Table"}[task]
+    formatted = []
+    for page_idx, raw in enumerate(outputs):
+        formatted.append(_format_block_content(
+            {
+                "label": label,
+                "need_infer": True,
+                "page_idx": page_idx,
+                "image": None,
+            },
+            raw,
+            [0] * max(1, len(outputs)),
+            ["single_task"],
+            [0],
+            False,
+            None,
+        ))
+    return formatted
+
+
+def _run_single_task_with_model(input_path, output_path, task, model):
     task = task.lower()
     if task not in TASK_PROMPTS:
         raise ValueError(f"Unsupported task: {task}. Choose from: {', '.join(TASK_PROMPTS)}")
 
-    configure_runtime(backend_config)
     out_dir = Path(output_path).expanduser().resolve()
     md_dir = out_dir / "markdowns"
     json_dir = out_dir / "jsons"
     out_dir.mkdir(parents=True, exist_ok=True)
     md_dir.mkdir(parents=True, exist_ok=True)
     json_dir.mkdir(parents=True, exist_ok=True)
-
-    _, model = backend_manager.get(backend_config)
     files = _list_single_task_inputs(input_path)
     if not files:
         raise ValueError(f"No supported input files found: {input_path}")
 
-    def infer_one_file(file_path: Path):
+    started = time.time()
+    results = []
+    for file_path in files:
         images = _load_task_images(file_path)
-        outputs = model.batch_inference(
+        raw_outputs = model.batch_inference(
             images,
             [TASK_PROMPTS[task]] * len(images),
             min_pixels=1003520,
             max_tokens=4096 if task == "table" else None,
         )
-        md_text = _format_single_task_markdown(task, file_path.stem, outputs)
+        outputs = _format_single_task_outputs(task, raw_outputs)
+        md_text = _format_single_task_markdown(outputs)
         md_path = md_dir / f"{file_path.stem}_{task}_result.md"
         json_path = json_dir / f"{file_path.stem}_{task}_result.json"
         md_path.write_text(md_text, encoding="utf-8")
         json_path.write_text(
-            json.dumps(
-                {
-                    "image_name": file_path.name,
-                    "image_path": str(file_path),
-                    "task": task,
-                    "outputs": outputs,
-                },
-                ensure_ascii=False,
-                indent=1,
-            ),
+            json.dumps({
+                "image_name": file_path.name,
+                "image_path": str(file_path),
+                "task": task,
+                "outputs": outputs,
+            }, ensure_ascii=False, indent=1),
             encoding="utf-8",
         )
-        return {
+        results.append({
             "input_path": str(file_path),
             "task": task,
             "outputs": outputs,
             "markdown_path": str(md_path),
             "json_path": str(json_path),
-        }
-
-    started = time.time()
-    results = []
-    if parse_semaphore is None:
-        for file_path in files:
-            results.append(infer_one_file(file_path))
-    else:
-        with parse_semaphore:
-            for file_path in files:
-                results.append(infer_one_file(file_path))
+        })
 
     all_results_path = out_dir / f"single_task_{task}_results.json"
     all_results_path.write_text(json.dumps(results, ensure_ascii=False, indent=1), encoding="utf-8")
@@ -2217,3 +2990,16 @@ def run_single_task_recognition(
         "results": results,
         "all_results_path": all_results_path,
     }
+
+
+def run_single_task_recognition(
+    input_path: str | Path,
+    output_path: str | Path,
+    task: str,
+    backend_config: BackendConfig,
+    *,
+    backend_manager: BackendManager = DEFAULT_BACKEND_MANAGER,
+):
+    configure_runtime(backend_config)
+    _, model = backend_manager.get(backend_config)
+    return _run_single_task_with_model(input_path, output_path, task, model)

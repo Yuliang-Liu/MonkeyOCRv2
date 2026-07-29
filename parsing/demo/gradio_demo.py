@@ -2,10 +2,10 @@ import argparse
 import atexit
 import base64
 import json
+import os
 import re
 import shutil
 import sys
-import threading
 import time
 import uuid
 from pathlib import Path
@@ -30,11 +30,11 @@ try:
         BackendConfig,
         PipelineConfig,
         DEFAULT_BACKEND_MANAGER,
+        ServicePipelinePool,
         load_all_results,
+        load_pdf_images,
         load_markdowns,
         open_oriented_image,
-        run_pipeline,
-        run_single_task_recognition,
         zip_dir,
     )
 except ModuleNotFoundError as exc:
@@ -43,7 +43,6 @@ except ModuleNotFoundError as exc:
         "Please run this demo in the environment used by parsing/parse.py."
     ) from exc
 
-PIPELINE_LOCK = threading.Lock()
 atexit.register(DEFAULT_BACKEND_MANAGER.close)
 
 
@@ -148,17 +147,9 @@ def _set_page_cache(session_state, images):
 
 def _load_pdf_preview_pages(pdf_path: str):
     try:
-        import pypdfium2 as pdfium
-    except Exception as exc:
+        return load_pdf_images(pdf_path)
+    except ImportError as exc:
         raise gr.Error("PDF preview requires pypdfium2. Please install it or upload an image.") from exc
-
-    pdf = pdfium.PdfDocument(pdf_path)
-    pages = []
-    for i in range(len(pdf)):
-        page = pdf[i]
-        bmp = page.render(scale=200 / 72)
-        pages.append(bmp.to_pil().convert("RGB"))
-    return pages
 
 
 def _load_image_preview(image_path: str):
@@ -184,7 +175,13 @@ def _create_run_dir(file_path, session_state, output_dir=DEFAULT_OUTPUT_DIR):
     return run_dir
 
 
-def _copy_input_to_run_dir(file_path, session_state, output_dir=DEFAULT_OUTPUT_DIR, new_run=False):
+def _copy_input_to_run_dir(
+    file_path,
+    session_state,
+    output_dir=DEFAULT_OUTPUT_DIR,
+    new_run=False,
+    max_pages=20,
+):
     if not file_path:
         return None
 
@@ -200,51 +197,31 @@ def _copy_input_to_run_dir(file_path, session_state, output_dir=DEFAULT_OUTPUT_D
     if src != dst.resolve():
         if dst.exists():
             dst = run_dir / f"{src.stem}_{uuid.uuid4().hex[:8]}{src.suffix}"
-        shutil.copy2(src, dst)
+        if src.suffix.lower() == ".pdf":
+            _copy_pdf_pages(src, dst, max_pages)
+        else:
+            shutil.copy2(src, dst)
 
     session_state["file_path"] = str(dst)
     return str(dst)
 
 
-def _relative_to_output_dir(path: str | Path, output_dir: str | Path) -> str:
-    path = Path(path).resolve()
-    output_dir = Path(output_dir).expanduser().resolve()
+def _copy_pdf_pages(src: Path, dst: Path, max_pages: int):
     try:
-        return str(path.relative_to(output_dir))
-    except ValueError:
-        return str(path)
+        import pypdfium2 as pdfium
+    except Exception as exc:
+        raise gr.Error("PDF input requires pypdfium2.") from exc
 
-
-def _create_run_dir(file_path, session_state, output_dir=DEFAULT_OUTPUT_DIR):
-    src = Path(file_path)
-    session_state["id"] = f"{time.strftime('%Y%m%d_%H%M%S')}_{uuid.uuid4().hex[:8]}"
-    run_name = f"{session_state['id']}_{src.stem}"
-    run_dir = Path(output_dir).expanduser().resolve() / run_name
-    run_dir.mkdir(parents=True, exist_ok=True)
-    session_state["run_dir"] = str(run_dir)
-    return run_dir
-
-
-def _copy_input_to_run_dir(file_path, session_state, output_dir=DEFAULT_OUTPUT_DIR, new_run=False):
-    if not file_path:
-        return None
-
-    src = Path(file_path).resolve()
-    if not src.exists():
-        return None
-
-    run_dir = Path(session_state["run_dir"]).resolve() if session_state.get("run_dir") else None
-    if new_run or run_dir is None:
-        run_dir = _create_run_dir(src, session_state, output_dir)
-
-    dst = run_dir / src.name
-    if src != dst.resolve():
-        if dst.exists():
-            dst = run_dir / f"{src.stem}_{uuid.uuid4().hex[:8]}{src.suffix}"
-        shutil.copy2(src, dst)
-
-    session_state["file_path"] = str(dst)
-    return str(dst)
+    source = pdfium.PdfDocument(str(src))
+    output = pdfium.PdfDocument.new()
+    try:
+        page_count = min(len(source), max(1, int(max_pages)))
+        if page_count:
+            output.import_pages(source, list(range(page_count)))
+        output.save(str(dst))
+    finally:
+        output.close()
+        source.close()
 
 
 def _load_example_preview(file_path: str, max_size=(260, 180)):
@@ -256,11 +233,20 @@ def _load_example_preview(file_path: str, max_size=(260, 180)):
             raise gr.Error("PDF preview requires pypdfium2. Please install it or upload an image.") from exc
 
         pdf = pdfium.PdfDocument(file_path)
-        if len(pdf) == 0:
-            return None
-        page = pdf[0]
-        bmp = page.render(scale=100 / 72)
-        image = bmp.to_pil().convert("RGB")
+        try:
+            if len(pdf) == 0:
+                return None
+            page = pdf[0]
+            try:
+                bmp = page.render(scale=100 / 72)
+                try:
+                    image = bmp.to_pil().convert("RGB")
+                finally:
+                    bmp.close()
+            finally:
+                page.close()
+        finally:
+            pdf.close()
     else:
         image = open_oriented_image(file_path).convert("RGB")
 
@@ -300,7 +286,7 @@ def preview_example(example_name):
     return _load_example_preview(file_path)
 
 
-def choose_example(example_name, session_state, output_dir=DEFAULT_OUTPUT_DIR):
+def choose_example(example_name, session_state, output_dir=DEFAULT_OUTPUT_DIR, max_pages=20):
     if not example_name:
         return None, _page_info(), session_state
 
@@ -308,12 +294,16 @@ def choose_example(example_name, session_state, output_dir=DEFAULT_OUTPUT_DIR):
     if not file_path:
         return None, _page_info(), session_state
 
-    saved_path = _copy_input_to_run_dir(file_path, session_state, output_dir, new_run=True)
+    saved_path = _copy_input_to_run_dir(
+        file_path, session_state, output_dir, new_run=True, max_pages=max_pages
+    )
     return _preview_file(saved_path, session_state)
 
 
-def load_uploaded_file(file_path, session_state, output_dir=DEFAULT_OUTPUT_DIR):
-    saved_path = _copy_input_to_run_dir(file_path, session_state, output_dir, new_run=True)
+def load_uploaded_file(file_path, session_state, output_dir=DEFAULT_OUTPUT_DIR, max_pages=20):
+    saved_path = _copy_input_to_run_dir(
+        file_path, session_state, output_dir, new_run=True, max_pages=max_pages
+    )
     preview_image, page_info, session_state = _preview_file(saved_path, session_state)
     return preview_image, page_info, session_state, gr.update(value=None), None
 
@@ -383,21 +373,16 @@ def parse_file(
     file_path,
     session_state,
     keep_header_footer,
-    model_path=DEFAULT_MODEL_PATH,
+    service_pool,
     output_dir=DEFAULT_OUTPUT_DIR,
-    server_url="",
-    served_model_name="MonkeyOCRv2",
-    request_timeout=300,
-    http_max_retries=5,
-    http_retry_backoff=1.0,
-    server_max_inflight=1024,
     page_max_inflight=16,
-    preprocess_batch_size=8,
-    skip_preprocess=False,
     end2end=False,
+    max_pages=20,
 ):
     file_path = session_state.get("file_path") or file_path
-    file_path = _copy_input_to_run_dir(file_path, session_state, output_dir) or file_path
+    file_path = _copy_input_to_run_dir(
+        file_path, session_state, output_dir, max_pages=max_pages
+    ) or file_path
 
     if file_path is None:
         md_preview_ltr, md_preview_rtl = _markdown_preview_updates("Please upload a PDF or image first.")
@@ -415,29 +400,16 @@ def parse_file(
     print(f"Parsing file: {file_path}")
 
     start = time.time()
-    tp = 1
     input_path = Path(file_path)
     if input_path.suffix.lower() not in EXAMPLE_EXTS:
         raise gr.Error("Unsupported file type. Please upload PDF or image files.")
     session_state["file_path"] = file_path
     run_dir = Path(session_state["run_dir"]).resolve() if session_state.get("run_dir") else _create_run_dir(input_path, session_state, output_dir)
-    result_info = run_pipeline(
+    result_info = service_pool.run(
         PipelineConfig(
             input_path=str(input_path),
             output_path=str(run_dir),
-            backend=BackendConfig(
-                model_path=model_path,
-                server_url=server_url,
-                served_model_name=served_model_name,
-                tp=tp,
-                max_pixels=1003520,
-                request_timeout=request_timeout,
-                http_max_retries=http_max_retries,
-                http_retry_backoff=http_retry_backoff,
-                server_max_inflight=server_max_inflight,
-                preprocess_batch_size=preprocess_batch_size,
-                skip_preprocess=skip_preprocess,
-            ),
+            backend=service_pool.backend_config,
             page_max_inflight=page_max_inflight,
             draw_layout=False,
             end2end=end2end,
@@ -446,9 +418,7 @@ def parse_file(
             retry_repeat_max_retries=3,
             keep_header_footer=keep_header_footer,
             use_base64=False,
-        ),
-        backend_manager=DEFAULT_BACKEND_MANAGER,
-        parse_semaphore=PIPELINE_LOCK,
+        )
     )
     md_dir = result_info["md_dir"]
 
@@ -491,18 +461,14 @@ def recognize_single_task(
     file_path,
     session_state,
     task_label,
-    model_path=DEFAULT_MODEL_PATH,
+    service_pool,
     output_dir=DEFAULT_OUTPUT_DIR,
-    server_url="",
-    served_model_name="MonkeyOCRv2",
-    request_timeout=300,
-    http_max_retries=5,
-    http_retry_backoff=1.0,
-    server_max_inflight=1024,
-    preprocess_batch_size=8,
+    max_pages=20,
 ):
     file_path = session_state.get("file_path") or file_path
-    file_path = _copy_input_to_run_dir(file_path, session_state, output_dir) or file_path
+    file_path = _copy_input_to_run_dir(
+        file_path, session_state, output_dir, max_pages=max_pages
+    ) or file_path
 
     if file_path is None:
         md_preview_ltr, md_preview_rtl = _markdown_preview_updates("Please upload a PDF or image first.")
@@ -524,25 +490,10 @@ def recognize_single_task(
 
     session_state["file_path"] = file_path
     run_dir = Path(session_state["run_dir"]).resolve() if session_state.get("run_dir") else _create_run_dir(input_path, session_state, output_dir)
-    result_info = run_single_task_recognition(
+    result_info = service_pool.run_single_task(
         str(input_path),
         str(run_dir),
         task,
-        BackendConfig(
-            model_path=model_path,
-            server_url=server_url,
-            served_model_name=served_model_name,
-            tp=1,
-            max_pixels=1003520,
-            request_timeout=request_timeout,
-            http_max_retries=http_max_retries,
-            http_retry_backoff=http_retry_backoff,
-            server_max_inflight=server_max_inflight,
-            preprocess_batch_size=preprocess_batch_size,
-            skip_preprocess=True,
-        ),
-        backend_manager=DEFAULT_BACKEND_MANAGER,
-        parse_semaphore=PIPELINE_LOCK,
     )
 
     markdowns = load_markdowns(result_info["md_dir"])
@@ -605,7 +556,32 @@ def create_gradio_app(
     preprocess_batch_size=8,
     skip_preprocess=False,
     end2end=False,
+    max_pages=20,
+    pdf_render_workers=4,
+    preprocess_wait_seconds=1.0,
 ):
+    backend_config = BackendConfig(
+        model_path=default_model_path,
+        server_url=server_url,
+        served_model_name=served_model_name,
+        tp=1,
+        max_pixels=1003520,
+        request_timeout=request_timeout,
+        http_max_retries=http_max_retries,
+        http_retry_backoff=http_retry_backoff,
+        server_max_inflight=server_max_inflight,
+        preprocess_batch_size=preprocess_batch_size,
+        skip_preprocess=skip_preprocess,
+    )
+    service_pool = ServicePipelinePool(
+        backend_config,
+        page_max_inflight,
+        backend_manager=DEFAULT_BACKEND_MANAGER,
+        batch_wait_seconds=preprocess_wait_seconds,
+        pdf_render_workers=pdf_render_workers,
+    )
+    atexit.register(service_pool.close)
+
     with gr.Blocks(title="MonkeyOCRv2-Parsing", theme="ocean", css=CSS) as demo:
         session_state = gr.State(create_session_state())
         initial_is_arabic = _contains_arabic(INITIAL_MARKDOWN)
@@ -712,6 +688,7 @@ def create_gradio_app(
                 file_path,
                 state,
                 output_dir=default_output_dir,
+                max_pages=max_pages,
             ),
             inputs=[file_input, session_state],
             outputs=[file_preview, page_info, session_state, example_dropdown, example_preview],
@@ -728,6 +705,7 @@ def create_gradio_app(
                 example_name,
                 state,
                 output_dir=default_output_dir,
+                max_pages=max_pages,
             ),
             inputs=[example_dropdown, session_state],
             outputs=[file_preview, page_info, session_state],
@@ -751,18 +729,11 @@ def create_gradio_app(
                 file_path,
                 state,
                 keep_header_footer_value,
-                model_path=default_model_path,
+                service_pool=service_pool,
                 output_dir=default_output_dir,
-                server_url=server_url,
-                served_model_name=served_model_name,
-                request_timeout=request_timeout,
-                http_max_retries=http_max_retries,
-                http_retry_backoff=http_retry_backoff,
-                server_max_inflight=server_max_inflight,
                 page_max_inflight=page_max_inflight,
-                preprocess_batch_size=preprocess_batch_size,
-                skip_preprocess=skip_preprocess,
                 end2end=end2end,
+                max_pages=max_pages,
             ),
             inputs=[file_input, session_state, keep_header_footer],
             outputs=[file_preview, md_view_ltr, md_view_rtl, md_raw, page_info, zip_download, json_download, session_state],
@@ -775,15 +746,9 @@ def create_gradio_app(
                 file_path,
                 state,
                 task_value,
-                model_path=default_model_path,
+                service_pool=service_pool,
                 output_dir=default_output_dir,
-                server_url=server_url,
-                served_model_name=served_model_name,
-                request_timeout=request_timeout,
-                http_max_retries=http_max_retries,
-                http_retry_backoff=http_retry_backoff,
-                server_max_inflight=server_max_inflight,
-                preprocess_batch_size=preprocess_batch_size,
+                max_pages=max_pages,
             ),
             inputs=[file_input, session_state, task_dropdown],
             outputs=[file_preview, md_view_ltr, md_view_rtl, md_raw, page_info, zip_download, json_download, session_state],
@@ -825,6 +790,10 @@ def main():
     parser.add_argument("--server-max-inflight", type=int, default=1024, help="Maximum in-flight model requests submitted by the demo process.")
     parser.add_argument("--page-max-inflight", type=int, default=256, help="Maximum pages kept in the parsing pipeline at the same time.")
     parser.add_argument("--preprocess-batch-size", type=int, default=32, help="Batch size used by the image preprocessor.")
+    parser.add_argument("--pdf-render-workers", type=int, default=int(os.getenv("MOCR2_PDF_RENDER_WORKERS", "16")), help="Worker threads used for bounded parallel PDF page rendering.")
+    parser.add_argument("--preprocess-wait-seconds", type=float, default=float(os.getenv("MOCR2_PREPROCESS_WAIT_SECONDS", "1.0")), help="Maximum seconds to wait for a service preprocess batch to fill.")
+    parser.add_argument("--demo-concurrency", type=int, default=int(os.getenv("MOCR2_DEMO_CONCURRENCY", "16")), help="Maximum number of Gradio event handlers running concurrently.")
+    parser.add_argument("--max-pages", type=int, default=20, help="Maximum PDF pages copied and parsed per request. No limit is applied to image inputs.")
     parser.add_argument("--skip-preprocess", action="store_true", help="Skip image preprocessing before layout and recognition.")
     parser.add_argument("--end2end", action="store_true", help="Use end-to-end parsing prompt instead of layout followed by block recognition.")
     parser.add_argument("--demo-server-name", default="0.0.0.0", help="Host address for the Gradio demo server.")
@@ -845,8 +814,11 @@ def main():
         preprocess_batch_size=args.preprocess_batch_size,
         skip_preprocess=args.skip_preprocess,
         end2end=args.end2end,
+        max_pages=args.max_pages,
+        pdf_render_workers=max(1, args.pdf_render_workers),
+        preprocess_wait_seconds=max(0.0, args.preprocess_wait_seconds),
     )
-    demo.queue().launch(
+    demo.queue(default_concurrency_limit=max(1, args.demo_concurrency)).launch(
         server_name=args.demo_server_name,
         server_port=args.demo_server_port,
         share=args.share,
