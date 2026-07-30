@@ -2062,8 +2062,7 @@ def run_streaming_pipeline(
         time_parse = stats["parse_finished_at"] - stats["parse_started_at"]
     if verbose:
         print(
-            f"Preprocess stage time: {stats['time_pre_stage']:.2f} s, "
-            f"inference time: {stats['time_pre']:.2f} s, "
+            f"Preprocess time: {stats['time_pre_stage']:.2f} s, "
             f"parsing time: {time_parse:.2f} s"
         )
     if verbose and stats["skipped_docs"]:
