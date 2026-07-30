@@ -12,6 +12,7 @@ Or:
 import argparse
 import asyncio
 import os
+import re
 import sys
 import time
 import traceback
@@ -46,6 +47,7 @@ DEFAULT_MODEL_PATH = str(PARSING_DIR.parent / "model_weight" / "MonkeyOCRv2-B-Pa
 DEFAULT_OUTPUT_DIR = str(PARSING_DIR / "output" / "fastapi_outputs")
 IMAGE_EXTS = {".jpg", ".jpeg", ".png", ".bmp", ".webp", ".tif", ".tiff"}
 INPUT_EXTS = IMAGE_EXTS | {".pdf"}
+MAX_COMPONENT_BYTES = 255
 
 
 class TaskResponse(BaseModel):
@@ -81,6 +83,7 @@ class Settings:
         self.preprocess_wait_seconds = float(os.getenv("MOCR2_PREPROCESS_WAIT_SECONDS", "1.0"))
         self.skip_preprocess = os.getenv("MOCR2_SKIP_PREPROCESS", "0").lower() in {"1", "true", "yes"}
         self.end2end = os.getenv("MOCR2_END2END", "0").lower() in {"1", "true", "yes"}
+        self.retry_repeat = os.getenv("MOCR2_RETRY_REPEAT", "0").lower() in {"1", "true", "yes"}
         self.keep_header_footer = os.getenv("MOCR2_KEEP_HEADER_FOOTER", "0").lower() in {"1", "true", "yes"}
         self.use_base64 = os.getenv("MOCR2_USE_BASE64", "0").lower() in {"1", "true", "yes"}
         self.debug = os.getenv("MOCR2_DEBUG", "0").lower() in {"1", "true", "yes"}
@@ -116,6 +119,7 @@ def configure_from_args():
     parser.add_argument("--preprocess-wait-seconds", type=float, default=settings.preprocess_wait_seconds, help="Maximum seconds to wait for a service preprocess batch to fill.")
     parser.add_argument("--skip-preprocess", action="store_true", default=settings.skip_preprocess, help="Skip image preprocessing before layout and recognition.")
     parser.add_argument("--end2end", action="store_true", default=settings.end2end, help="Use end-to-end parsing prompt instead of layout followed by block recognition.")
+    parser.add_argument("--retry-repeat", action="store_true", default=settings.retry_repeat, help="Retry recognition when the generated output contains suspicious repetition. Disabled by default.")
     parser.add_argument("--keep-header-footer", action="store_true", default=settings.keep_header_footer, help="Keep Page-header and Page-footer blocks in markdown output.")
     parser.add_argument("--use-base64", action="store_true", default=settings.use_base64, help="Embed Picture blocks as base64 in markdown instead of saving image files.")
     parser.add_argument("--debug", action="store_true", default=settings.debug, help="Print full service-pipeline tracebacks and expose exception details in HTTP 500 responses.")
@@ -140,6 +144,7 @@ def configure_from_args():
     settings.preprocess_wait_seconds = max(0.0, args.preprocess_wait_seconds)
     settings.skip_preprocess = args.skip_preprocess
     settings.end2end = args.end2end
+    settings.retry_repeat = args.retry_repeat
     settings.keep_header_footer = args.keep_header_footer
     settings.use_base64 = args.use_base64
     settings.debug = args.debug
@@ -229,6 +234,7 @@ async def health_check():
         "pdf_render_workers": settings.pdf_render_workers,
         "preprocess_wait_seconds": settings.preprocess_wait_seconds,
         "skip_preprocess": settings.skip_preprocess,
+        "retry_repeat": settings.retry_repeat,
         "debug": settings.debug,
     }
 
@@ -299,7 +305,7 @@ async def parse_document_internal(file: UploadFile):
                 draw_layout=False,
                 end2end=settings.end2end,
                 skip_processed=False,
-                retry_repeat=True,
+                retry_repeat=settings.retry_repeat,
                 retry_repeat_max_retries=3,
                 keep_header_footer=settings.keep_header_footer,
                 use_base64=settings.use_base64,
@@ -335,15 +341,34 @@ def raise_internal_error(stage: str, exc: Exception):
 
 
 def make_run_id(filename: str, suffix: str = "") -> str:
-    stem = Path(filename or "upload").stem or "upload"
-    return f"{time.strftime('%Y%m%d_%H%M%S')}_{uuid.uuid4().hex[:8]}_{stem}{suffix}"
+    prefix = f"{time.strftime('%Y%m%d_%H%M%S')}_{uuid.uuid4().hex[:8]}"
+    suffix = _safe_filename_component(suffix, max_bytes=32, fallback="")
+    return f"{prefix}{suffix}"
+
+
+def _truncate_utf8(value: str, max_bytes: int) -> str:
+    encoded = value.encode("utf-8")
+    if len(encoded) <= max_bytes:
+        return value
+    return encoded[:max_bytes].decode("utf-8", errors="ignore")
+
+
+def _safe_filename_component(value: str, *, max_bytes: int, fallback: str) -> str:
+    value = re.sub(r'[\x00-\x1f<>:"/\\|?*]', "_", str(value or ""))
+    value = value.strip().strip(".")
+    value = _truncate_utf8(value, max_bytes).rstrip(" .")
+    return value or fallback
 
 
 async def save_upload(file: UploadFile, output_dir: Path) -> Path:
     suffix = Path(file.filename or "upload").suffix.lower()
-    if not suffix:
+    if not suffix or len(suffix.encode("utf-8")) > 16:
         suffix = ".bin"
-    stem = Path(file.filename or "upload").stem or "upload"
+    stem = _safe_filename_component(
+        Path(file.filename or "upload").stem,
+        max_bytes=MAX_COMPONENT_BYTES - len(suffix.encode("utf-8")),
+        fallback="upload",
+    )
     dst = output_dir / f"{stem}{suffix}"
     async with aiofiles.open(dst, "wb") as f:
         while True:
