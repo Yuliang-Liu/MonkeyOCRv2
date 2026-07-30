@@ -2477,7 +2477,6 @@ class ServicePipelinePool:
             if job is None or not job.failed:
                 self._report_error("submit", exc)
             raise
-
     def run_single_task(self, input_path, output_path, task):
         task = task.lower()
         if task not in TASK_PROMPTS:
