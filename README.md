@@ -254,7 +254,7 @@ python extract_feature_vitae.py -m ../model_weight/MonkeyOCRv2-AS -i ../images_t
 #### 1. Install
 Install vLLM following its [official guide](https://docs.vllm.ai/en/v0.11.2/getting_started/installation/gpu/):
 ```bash
-conda create -n MonkeyOCRv2Parsing python=3.10
+conda create -n MonkeyOCRv2Parsing python=3.11
 conda activate MonkeyOCRv2Parsing
 pip install uv
 uv pip install vllm --extra-index-url https://wheels.vllm.ai/0.25.1/cu129 --extra-index-url https://download.pytorch.org/whl/cu129 -i https://pypi.tuna.tsinghua.edu.cn/simple
