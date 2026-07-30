@@ -2467,6 +2467,11 @@ class ServicePipelinePool:
         try:
             if config.backend != self.backend_config:
                 raise ValueError("ServicePipelinePool backend configuration cannot change per request.")
+            if int(config.page_max_inflight) != self.page_window:
+                raise ValueError(
+                    "ServicePipelinePool page_max_inflight is fixed at construction time; "
+                    f"expected {self.page_window}, got {config.page_max_inflight}."
+                )
             dirs = prepare_output_dirs(
                 config.output_path,
                 # Service requests pass preprocessed PIL images directly to parsing.
@@ -2481,7 +2486,6 @@ class ServicePipelinePool:
             if job is None or not job.failed:
                 self._report_error("submit", exc)
             raise
-
     def run_single_task(self, input_path, output_path, task):
         return _run_single_task_with_model(
             input_path,
