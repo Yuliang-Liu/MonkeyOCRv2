@@ -1,7 +1,6 @@
 import argparse
 import atexit
 import base64
-import json
 import os
 import re
 import shutil
@@ -34,6 +33,7 @@ try:
         load_all_results,
         load_pdf_images,
         load_markdowns,
+        make_artifact_filename,
         open_oriented_image,
         zip_dir,
     )
@@ -156,20 +156,9 @@ def _load_image_preview(image_path: str):
     return open_oriented_image(image_path).convert("RGB")
 
 
-def _relative_to_output_dir(path: str | Path, output_dir: str | Path) -> str:
-    path = Path(path).resolve()
-    output_dir = Path(output_dir).expanduser().resolve()
-    try:
-        return str(path.relative_to(output_dir))
-    except ValueError:
-        return str(path)
-
-
-def _create_run_dir(file_path, session_state, output_dir=DEFAULT_OUTPUT_DIR):
-    src = Path(file_path)
+def _create_run_dir(session_state, output_dir=DEFAULT_OUTPUT_DIR):
     session_state["id"] = f"{time.strftime('%Y%m%d_%H%M%S')}_{uuid.uuid4().hex[:8]}"
-    run_name = f"{session_state['id']}_{src.stem}"
-    run_dir = Path(output_dir).expanduser().resolve() / run_name
+    run_dir = Path(output_dir).expanduser().resolve() / session_state["id"]
     run_dir.mkdir(parents=True, exist_ok=True)
     session_state["run_dir"] = str(run_dir)
     return run_dir
@@ -191,12 +180,15 @@ def _copy_input_to_run_dir(
 
     run_dir = Path(session_state["run_dir"]).resolve() if session_state.get("run_dir") else None
     if new_run or run_dir is None:
-        run_dir = _create_run_dir(src, session_state, output_dir)
+        run_dir = _create_run_dir(session_state, output_dir)
 
     dst = run_dir / src.name
     if src != dst.resolve():
         if dst.exists():
-            dst = run_dir / f"{src.stem}_{uuid.uuid4().hex[:8]}{src.suffix}"
+            dst = run_dir / make_artifact_filename(
+                src.stem,
+                f"_{uuid.uuid4().hex[:8]}{src.suffix}",
+            )
         if src.suffix.lower() == ".pdf":
             _copy_pdf_pages(src, dst, max_pages)
         else:
@@ -322,6 +314,14 @@ def turn_page(direction, session_state):
     return cache["images"][idx], _page_info(idx + 1, cache["total_pages"]), session_state
 
 
+def _current_preview(session_state, file_path):
+    cache = session_state["pdf_cache"]
+    if cache["images"]:
+        idx = cache["current_page"]
+        return cache["images"][idx], _page_info(idx + 1, cache["total_pages"]), session_state
+    return _preview_file(file_path, session_state)
+
+
 def _markdown_for_preview(md_text: str, md_dir: Path) -> str:
     def replace_image_with_base64(match):
         alt_text = match.group(1)
@@ -423,27 +423,19 @@ def parse_file(
     md_dir = result_info["md_dir"]
 
     result_records = load_all_results(run_dir)
-    all_results_path = result_info["all_results_path"]
-    if result_records:
-        for record in result_records:
-            record["image_path"] = _relative_to_output_dir(record.get("image_path", ""), output_dir)
-        all_results_path.write_text(
-            json.dumps(result_records, ensure_ascii=False, indent=1),
-            encoding="utf-8",
-        )
-
     markdowns = load_markdowns(md_dir)
 
-    zip_path = run_dir / f"{input_path.stem}_results.zip"
+    zip_path = run_dir / make_artifact_filename(input_path.stem, "_results.zip")
     zip_dir(run_dir, zip_path)
 
-    preview_image, page_info, session_state = _preview_file(file_path, session_state)
+    preview_image, page_info, session_state = _current_preview(session_state, file_path)
 
     md_text = markdowns[0] if markdowns else ""
     md_preview = _markdown_for_preview(md_text, md_dir)
     elapsed = time.time() - start
     status = f"Parsed {max(1, len(result_records))} document(s) in {elapsed:.2f}s. Results saved to {run_dir}"
     md_preview_ltr, md_preview_rtl = _markdown_preview_updates(md_preview or status, md_text)
+    print(status)
 
     return (
         preview_image,
@@ -497,9 +489,9 @@ def recognize_single_task(
     )
 
     markdowns = load_markdowns(result_info["md_dir"])
-    zip_path = run_dir / f"{input_path.stem}_{task}_result.zip"
+    zip_path = run_dir / make_artifact_filename(input_path.stem, f"_{task}_result.zip")
     zip_dir(run_dir, zip_path)
-    preview_image, page_info, session_state = _preview_file(file_path, session_state)
+    preview_image, page_info, session_state = _current_preview(session_state, file_path)
 
     md_text = markdowns[0] if markdowns else ""
     md_preview = _markdown_for_preview(md_text, result_info["md_dir"])

@@ -24,7 +24,7 @@ from typing import List, Optional
 
 import aiofiles
 from fastapi import FastAPI, File, HTTPException, UploadFile
-from fastapi.responses import RedirectResponse
+from fastapi.responses import JSONResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
@@ -39,6 +39,7 @@ from core_runner import (  # noqa: E402
     PipelineConfig,
     ServicePipelinePool,
     TASK_PROMPTS,
+    make_artifact_filename,
     zip_dir,
 )
 
@@ -194,14 +195,15 @@ def initialize_backend():
 async def lifespan(app: FastAPI):
     initialize_backend()
     yield
-    executor.shutdown(wait=True)
     if service_pool is not None:
         service_pool.close()
+    executor.shutdown(wait=True)
     backend_manager.close()
 
 
 cli_args = configure_from_args()
 executor = ThreadPoolExecutor(max_workers=settings.api_workers)
+api_admission = asyncio.Semaphore(settings.api_workers)
 
 app = FastAPI(
     title="MonkeyOCRv2 API",
@@ -213,6 +215,24 @@ app = FastAPI(
 
 Path(settings.output_dir).mkdir(parents=True, exist_ok=True)
 app.mount("/static", StaticFiles(directory=settings.output_dir), name="static")
+
+
+@app.middleware("http")
+async def limit_parse_concurrency(request, call_next):
+    limited_paths = {"/parse", "/ocr/text", "/ocr/formula", "/ocr/table"}
+    if request.url.path not in limited_paths:
+        return await call_next(request)
+    if api_admission.locked():
+        return JSONResponse(
+            status_code=503,
+            content={"detail": "API parsing capacity is full. Retry later."},
+            headers={"Retry-After": "1"},
+        )
+    await api_admission.acquire()
+    try:
+        return await call_next(request)
+    finally:
+        api_admission.release()
 
 
 @app.get("/")
@@ -263,7 +283,7 @@ async def perform_ocr_task(file: UploadFile, task_type: str):
     if task_type not in TASK_PROMPTS:
         raise HTTPException(status_code=400, detail=f"Unsupported OCR task: {task_type}")
 
-    run_id = make_run_id(file.filename or "upload", suffix=f"_{task_type}")
+    run_id = make_run_id(suffix=f"_{task_type}")
     run_dir = Path(settings.output_dir).expanduser().resolve() / run_id
     run_dir.mkdir(parents=True, exist_ok=True)
     input_path = await save_upload(file, run_dir)
@@ -288,7 +308,7 @@ async def perform_ocr_task(file: UploadFile, task_type: str):
 
 
 async def parse_document_internal(file: UploadFile):
-    run_id = make_run_id(file.filename or "upload")
+    run_id = make_run_id()
     run_dir = Path(settings.output_dir).expanduser().resolve() / run_id
     run_dir.mkdir(parents=True, exist_ok=True)
     input_path = await save_upload(file, run_dir)
@@ -296,7 +316,7 @@ async def parse_document_internal(file: UploadFile):
         raise HTTPException(status_code=400, detail="Unsupported file type. Use PDF or image files.")
 
     def run_parse():
-        return service_pool.run(
+        service_pool.run(
             PipelineConfig(
                 input_path=str(input_path),
                 output_path=str(run_dir),
@@ -312,13 +332,18 @@ async def parse_document_internal(file: UploadFile):
                 verbose=False,
             )
         )
+        zip_path = run_dir / make_artifact_filename(input_path.stem, "_results.zip")
+        zip_dir(run_dir, zip_path)
+        files = [
+            str(path.relative_to(run_dir))
+            for path in run_dir.rglob("*")
+            if path.is_file()
+        ]
+        return zip_path, files
 
     try:
         loop = asyncio.get_running_loop()
-        await loop.run_in_executor(executor, run_parse)
-        zip_path = run_dir / f"{input_path.stem}_results.zip"
-        zip_dir(run_dir, zip_path)
-        files = [str(path.relative_to(run_dir)) for path in run_dir.rglob("*") if path.is_file()]
+        zip_path, files = await loop.run_in_executor(executor, run_parse)
         return ParseResponse(
             success=True,
             message="Document parsed successfully.",
@@ -340,7 +365,7 @@ def raise_internal_error(stage: str, exc: Exception):
     raise HTTPException(status_code=500, detail=detail) from exc
 
 
-def make_run_id(filename: str, suffix: str = "") -> str:
+def make_run_id(suffix: str = "") -> str:
     prefix = f"{time.strftime('%Y%m%d_%H%M%S')}_{uuid.uuid4().hex[:8]}"
     suffix = _safe_filename_component(suffix, max_bytes=32, fallback="")
     return f"{prefix}{suffix}"
