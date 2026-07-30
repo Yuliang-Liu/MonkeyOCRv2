@@ -63,6 +63,8 @@ ALL_PROMPT = {
 IMAGE_EXTS = {".jpg", ".jpeg", ".png", ".bmp", ".webp", ".tif", ".tiff"}
 INPUT_EXTS = IMAGE_EXTS | {".pdf"}
 MAX_FILENAME_BYTES = 255
+# PDFium is not thread-safe. Every in-process PDFium call must share this lock.
+PDFIUM_LOCK = threading.RLock()
 
 
 def make_artifact_filename(stem: str, suffix: str, max_bytes: int = MAX_FILENAME_BYTES) -> str:
@@ -1097,19 +1099,20 @@ def result2md(
 
 
 def _render_pdf_page(pdf, page_idx: int) -> Image.Image:
-    page = pdf[page_idx]
-    try:
-        bitmap = page.render(scale=200 / 72)
+    with PDFIUM_LOCK:
+        page = pdf[page_idx]
         try:
-            return bitmap.to_pil().convert("RGB")
+            bitmap = page.render(scale=200 / 72)
+            try:
+                return bitmap.to_pil().convert("RGB")
+            finally:
+                close_bitmap = getattr(bitmap, "close", None)
+                if callable(close_bitmap):
+                    close_bitmap()
         finally:
-            close_bitmap = getattr(bitmap, "close", None)
-            if callable(close_bitmap):
-                close_bitmap()
-    finally:
-        close_page = getattr(page, "close", None)
-        if callable(close_page):
-            close_page()
+            close_page = getattr(page, "close", None)
+            if callable(close_page):
+                close_page()
 
 
 def load_pdf_images(pdf_path: str):
@@ -1118,25 +1121,23 @@ def load_pdf_images(pdf_path: str):
     except Exception as e:
         raise ImportError("Reading PDF files requires pypdfium2") from e
 
-    pdf = pdfium.PdfDocument(pdf_path)
-    try:
-        return [_render_pdf_page(pdf, page_idx) for page_idx in range(len(pdf))]
-    finally:
-        close_pdf = getattr(pdf, "close", None)
-        if callable(close_pdf):
-            close_pdf()
+    with PDFIUM_LOCK:
+        pdf = pdfium.PdfDocument(pdf_path)
+        try:
+            return [_render_pdf_page(pdf, page_idx) for page_idx in range(len(pdf))]
+        finally:
+            close_pdf = getattr(pdf, "close", None)
+            if callable(close_pdf):
+                close_pdf()
 
 
-class _ThreadLocalPdfRenderer:
-    def __init__(self, max_open_per_thread: int = 4):
-        self.max_open_per_thread = max(1, int(max_open_per_thread))
-        self._local = threading.local()
-        self._handles = {}
-        self._lock = threading.Lock()
+class _PdfRenderer:
+    def __init__(self, max_open_documents: int = 16):
+        self.max_open_documents = max(1, int(max_open_documents))
+        self._cache = OrderedDict()
 
-    def _close_handle(self, pdf):
-        with self._lock:
-            self._handles.pop(id(pdf), None)
+    @staticmethod
+    def _close_handle(pdf):
         close_pdf = getattr(pdf, "close", None)
         if callable(close_pdf):
             close_pdf()
@@ -1147,31 +1148,24 @@ class _ThreadLocalPdfRenderer:
         except Exception as exc:
             raise ImportError("Reading PDF files requires pypdfium2") from exc
 
-        key = str(Path(pdf_path).resolve())
-        cache = getattr(self._local, "cache", None)
-        if cache is None:
-            cache = OrderedDict()
-            self._local.cache = cache
-        pdf = cache.pop(key, None)
-        if pdf is None:
-            pdf = pdfium.PdfDocument(key)
-            with self._lock:
-                self._handles[id(pdf)] = pdf
-        cache[key] = pdf
-        while len(cache) > self.max_open_per_thread:
-            _, stale_pdf = cache.popitem(last=False)
-            self._close_handle(stale_pdf)
-        return _render_pdf_page(pdf, page_idx)
+        with PDFIUM_LOCK:
+            key = str(Path(pdf_path).resolve())
+            pdf = self._cache.pop(key, None)
+            if pdf is None:
+                pdf = pdfium.PdfDocument(key)
+            self._cache[key] = pdf
+            while len(self._cache) > self.max_open_documents:
+                _, stale_pdf = self._cache.popitem(last=False)
+                self._close_handle(stale_pdf)
+            return _render_pdf_page(pdf, page_idx)
 
     def close(self):
-        with self._lock:
-            handles = list(self._handles.values())
-            self._handles.clear()
-        for pdf in handles:
-            close_pdf = getattr(pdf, "close", None)
-            if callable(close_pdf):
+        with PDFIUM_LOCK:
+            handles = list(self._cache.values())
+            self._cache.clear()
+            for pdf in handles:
                 try:
-                    close_pdf()
+                    self._close_handle(pdf)
                 except Exception:
                     pass
 
@@ -1294,13 +1288,14 @@ def _count_pending_pages(input_path: str, md_dir: Path, skip_processed: bool) ->
             except ImportError:
                 total += 1
                 continue
-            pdf = pdfium.PdfDocument(str(f))
-            try:
-                total += len(pdf)
-            finally:
-                close = getattr(pdf, "close", None)
-                if close is not None:
-                    close()
+            with PDFIUM_LOCK:
+                pdf = pdfium.PdfDocument(str(f))
+                try:
+                    total += len(pdf)
+                finally:
+                    close = getattr(pdf, "close", None)
+                    if close is not None:
+                        close()
         else:
             total += 1
     return total
@@ -1330,9 +1325,11 @@ def _iter_input_page_events(
                 import pypdfium2 as pdfium
             except Exception as exc:
                 raise ImportError("Reading PDF files requires pypdfium2") from exc
-            pdf = pdfium.PdfDocument(str(input_file))
+            with PDFIUM_LOCK:
+                pdf = pdfium.PdfDocument(str(input_file))
             try:
-                page_count = len(pdf)
+                with PDFIUM_LOCK:
+                    page_count = len(pdf)
                 yield ("doc", doc_id, {
                     "name": input_file.stem,
                     "image_name": input_file.name,
@@ -1361,9 +1358,10 @@ def _iter_input_page_events(
                         True,
                     )
             finally:
-                close_pdf = getattr(pdf, "close", None)
-                if callable(close_pdf):
-                    close_pdf()
+                with PDFIUM_LOCK:
+                    close_pdf = getattr(pdf, "close", None)
+                    if callable(close_pdf):
+                        close_pdf()
         else:
             yield ("doc", doc_id, {
                 "name": input_file.stem,
@@ -2368,14 +2366,12 @@ class ServicePipelinePool:
         *,
         backend_manager: BackendManager = DEFAULT_BACKEND_MANAGER,
         batch_wait_seconds: float = 1.0,
-        pdf_render_workers: int = 4,
         debug: bool = False,
     ):
         configure_runtime(backend_config)
         self.backend_config = backend_config
         self.page_window = max(1, int(page_max_inflight))
         self.batch_wait_seconds = max(0.0, float(batch_wait_seconds))
-        self.pdf_render_workers = max(1, min(int(pdf_render_workers), self.page_window))
         self.debug = bool(debug)
         self.preprocessor, self.model = backend_manager.get(backend_config)
         self.stop_event = threading.Event()
@@ -2388,8 +2384,7 @@ class ServicePipelinePool:
         self.parse_q = queue.Queue(maxsize=self.page_window)
         self.preprocess_slots = threading.BoundedSemaphore(self.page_window)
         self.parse_slots = threading.BoundedSemaphore(self.page_window)
-        self.pdf_renderer = _ThreadLocalPdfRenderer()
-        self.pdf_render_executor = ThreadPoolExecutor(max_workers=self.pdf_render_workers)
+        self.pdf_renderer = _PdfRenderer()
         self.page_executor = ThreadPoolExecutor(max_workers=self.page_window)
         self.output_executor = ThreadPoolExecutor(max_workers=max(1, min(4, self.page_window)))
         self._sentinel = object()
@@ -2510,13 +2505,14 @@ class ServicePipelinePool:
                 import pypdfium2 as pdfium
             except Exception as exc:
                 raise ImportError("Reading PDF files requires pypdfium2") from exc
-            pdf = pdfium.PdfDocument(str(input_path))
-            try:
-                page_count = len(pdf)
-            finally:
-                close_pdf = getattr(pdf, "close", None)
-                if callable(close_pdf):
-                    close_pdf()
+            with PDFIUM_LOCK:
+                pdf = pdfium.PdfDocument(str(input_path))
+                try:
+                    page_count = len(pdf)
+                finally:
+                    close_pdf = getattr(pdf, "close", None)
+                    if callable(close_pdf):
+                        close_pdf()
         else:
             page_count = 1
         if page_count == 0:
@@ -2528,24 +2524,14 @@ class ServicePipelinePool:
             "is_pdf": input_path.suffix.lower() == ".pdf",
             "page_count": page_count,
             "next_page": 0,
-            "pending": [],
         }
 
     @staticmethod
     def _try_acquire_slot(slot) -> bool:
         return slot.acquire(blocking=False)
 
-    def _release_read_state(self, state):
-        slot = self.parse_slots if state["job"].skip_preprocess else self.preprocess_slots
-        for _, future in state["pending"]:
-            future.cancel()
-            slot.release()
-        state["pending"].clear()
-
     def _submit_read(self, state) -> bool:
         if state["next_page"] >= state["page_count"]:
-            return False
-        if len(state["pending"]) >= self.pdf_render_workers:
             return False
         job = state["job"]
         slot = self.parse_slots if job.skip_preprocess else self.preprocess_slots
@@ -2555,40 +2541,23 @@ class ServicePipelinePool:
         state["next_page"] += 1
         try:
             if state["is_pdf"]:
-                future = self.pdf_render_executor.submit(
-                    self.pdf_renderer.render, state["input_path"], page_idx
-                )
+                image = self.pdf_renderer.render(state["input_path"], page_idx)
             else:
-                future = self.pdf_render_executor.submit(load_image, str(state["input_path"]))
+                image = load_image(str(state["input_path"]))
         except Exception:
             slot.release()
             raise
-        state["pending"].append((page_idx, future))
-        return True
 
-    def _enqueue_rendered_page(self, state) -> bool:
-        for pending_idx, (page_idx, future) in enumerate(state["pending"]):
-            if not future.done():
-                continue
-            state["pending"].pop(pending_idx)
-            job = state["job"]
-            slot = self.parse_slots if job.skip_preprocess else self.preprocess_slots
+        page = {"job": job, "page_idx": page_idx, "image": image}
+        if job.skip_preprocess:
+            self._enqueue_parse(page, slot_reserved=True)
+        else:
             try:
-                image = future.result()
+                self._put(self.preprocess_q, page)
             except Exception:
-                slot.release()
+                self.preprocess_slots.release()
                 raise
-            page = {"job": job, "page_idx": page_idx, "image": image}
-            if job.skip_preprocess:
-                self._enqueue_parse(page, slot_reserved=True)
-            else:
-                try:
-                    self._put(self.preprocess_q, page)
-                except Exception:
-                    self.preprocess_slots.release()
-                    raise
-            return True
-        return False
+        return True
 
     def _request_worker(self):
         active = deque()
@@ -2613,16 +2582,13 @@ class ServicePipelinePool:
                 job = state["job"]
                 try:
                     if job.failed:
-                        self._release_read_state(state)
                         continue
-                    # One submission and one completion per request per round keeps
+                    # One page per request per round keeps
                     # large PDFs from monopolizing the shared page window.
                     made_progress = self._submit_read(state) or made_progress
-                    made_progress = self._enqueue_rendered_page(state) or made_progress
-                    if state["next_page"] < state["page_count"] or state["pending"]:
+                    if state["next_page"] < state["page_count"]:
                         active.append(state)
                 except Exception as exc:
-                    self._release_read_state(state)
                     self._fail_job(job, "request-reader", exc)
 
             if not made_progress:
@@ -2636,9 +2602,6 @@ class ServicePipelinePool:
                         active.append(state)
                     except Exception as exc:
                         self._fail_job(job, "request-reader", exc)
-
-        for state in active:
-            self._release_read_state(state)
 
     def _preprocess_worker(self):
         if self.preprocessor is None:
@@ -2917,7 +2880,6 @@ class ServicePipelinePool:
                 pass
         for thread in self._threads:
             thread.join(timeout=5)
-        self.pdf_render_executor.shutdown(wait=True)
         self.pdf_renderer.close()
         self.page_executor.shutdown(wait=True)
         self.output_executor.shutdown(wait=True)

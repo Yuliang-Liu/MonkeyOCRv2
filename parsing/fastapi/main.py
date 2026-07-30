@@ -80,7 +80,6 @@ class Settings:
         self.page_max_inflight = int(os.getenv("MOCR2_PAGE_MAX_INFLIGHT", "256"))
         self.preprocess_batch_size = int(os.getenv("MOCR2_PREPROCESS_BATCH_SIZE", "32"))
         self.api_workers = int(os.getenv("MOCR2_API_WORKERS", "128"))
-        self.pdf_render_workers = int(os.getenv("MOCR2_PDF_RENDER_WORKERS", "16"))
         self.preprocess_wait_seconds = float(os.getenv("MOCR2_PREPROCESS_WAIT_SECONDS", "1.0"))
         self.skip_preprocess = os.getenv("MOCR2_SKIP_PREPROCESS", "0").lower() in {"1", "true", "yes"}
         self.end2end = os.getenv("MOCR2_END2END", "0").lower() in {"1", "true", "yes"}
@@ -116,7 +115,6 @@ def configure_from_args():
     parser.add_argument("--page-max-inflight", type=int, default=settings.page_max_inflight, help="Maximum pages kept in the parsing pipeline at the same time.")
     parser.add_argument("--preprocess-batch-size", type=int, default=settings.preprocess_batch_size, help="Batch size used by the image preprocessor.")
     parser.add_argument("--api-workers", type=int, default=settings.api_workers, help="Maximum API request handlers running blocking pipeline work concurrently.")
-    parser.add_argument("--pdf-render-workers", type=int, default=settings.pdf_render_workers, help="Worker threads used for bounded parallel PDF page rendering.")
     parser.add_argument("--preprocess-wait-seconds", type=float, default=settings.preprocess_wait_seconds, help="Maximum seconds to wait for a service preprocess batch to fill.")
     parser.add_argument("--skip-preprocess", action="store_true", default=settings.skip_preprocess, help="Skip image preprocessing before layout and recognition.")
     parser.add_argument("--end2end", action="store_true", default=settings.end2end, help="Use end-to-end parsing prompt instead of layout followed by block recognition.")
@@ -141,7 +139,6 @@ def configure_from_args():
     settings.page_max_inflight = args.page_max_inflight
     settings.preprocess_batch_size = args.preprocess_batch_size
     settings.api_workers = max(1, args.api_workers)
-    settings.pdf_render_workers = max(1, args.pdf_render_workers)
     settings.preprocess_wait_seconds = max(0.0, args.preprocess_wait_seconds)
     settings.skip_preprocess = args.skip_preprocess
     settings.end2end = args.end2end
@@ -182,7 +179,6 @@ def initialize_backend():
         settings.page_max_inflight,
         backend_manager=backend_manager,
         batch_wait_seconds=settings.preprocess_wait_seconds,
-        pdf_render_workers=settings.pdf_render_workers,
         debug=settings.debug,
     )
     backend["model"] = model
@@ -251,7 +247,6 @@ async def health_check():
         "server_max_inflight": settings.server_max_inflight,
         "page_max_inflight": settings.page_max_inflight,
         "api_workers": settings.api_workers,
-        "pdf_render_workers": settings.pdf_render_workers,
         "preprocess_wait_seconds": settings.preprocess_wait_seconds,
         "skip_preprocess": settings.skip_preprocess,
         "retry_repeat": settings.retry_repeat,

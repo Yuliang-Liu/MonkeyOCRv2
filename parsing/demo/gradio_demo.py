@@ -28,6 +28,7 @@ try:
     from core_runner import (
         BackendConfig,
         PipelineConfig,
+        PDFIUM_LOCK,
         DEFAULT_BACKEND_MANAGER,
         ServicePipelinePool,
         load_all_results,
@@ -204,16 +205,66 @@ def _copy_pdf_pages(src: Path, dst: Path, max_pages: int):
     except Exception as exc:
         raise gr.Error("PDF input requires pypdfium2.") from exc
 
-    source = pdfium.PdfDocument(str(src))
-    output = pdfium.PdfDocument.new()
+    max_pages = max(1, int(max_pages))
+    staging_path = dst.parent / f".{dst.name}.{uuid.uuid4().hex}.uploading"
+    output_path = dst.parent / f".{dst.name}.{uuid.uuid4().hex}.truncated"
+    source = None
+    last_error = None
     try:
-        page_count = min(len(source), max(1, int(max_pages)))
-        if page_count:
-            output.import_pages(source, list(range(page_count)))
-        output.save(str(dst))
+        # Gradio stores uploads in a temporary cache. Snapshot it before PDFium
+        # opens the file so a concurrent cache write cannot expose a partial PDF.
+        for attempt in range(3):
+            shutil.copyfile(src, staging_path)
+            if staging_path.stat().st_size == 0:
+                last_error = ValueError("uploaded file is empty")
+            else:
+                with staging_path.open("rb") as file:
+                    if b"%PDF-" not in file.read(1024):
+                        raise gr.Error("The uploaded .pdf file does not contain valid PDF data.")
+                try:
+                    with PDFIUM_LOCK:
+                        source = pdfium.PdfDocument(str(staging_path))
+                    break
+                except Exception as exc:
+                    last_error = exc
+            if attempt < 2:
+                time.sleep(0.2 * (attempt + 1))
+
+        if source is None:
+            raise gr.Error(
+                "Unable to open the uploaded PDF. The file may be incomplete, "
+                "corrupted, encrypted, or unsupported by PDFium."
+            ) from last_error
+
+        with PDFIUM_LOCK:
+            page_count = len(source)
+        if page_count == 0:
+            raise gr.Error("The uploaded PDF contains no pages.")
+        if page_count <= max_pages:
+            with PDFIUM_LOCK:
+                source.close()
+            source = None
+            os.replace(staging_path, dst)
+            return
+
+        with PDFIUM_LOCK:
+            output = pdfium.PdfDocument.new()
+            try:
+                output.import_pages(source, list(range(max_pages)))
+                output.save(str(output_path))
+            finally:
+                output.close()
+        os.replace(output_path, dst)
+    except gr.Error:
+        raise
+    except Exception as exc:
+        raise gr.Error(f"Failed to prepare the uploaded PDF: {type(exc).__name__}: {exc}") from exc
     finally:
-        output.close()
-        source.close()
+        if source is not None:
+            with PDFIUM_LOCK:
+                source.close()
+        staging_path.unlink(missing_ok=True)
+        output_path.unlink(missing_ok=True)
 
 
 def _load_example_preview(file_path: str, max_size=(260, 180)):
@@ -224,21 +275,22 @@ def _load_example_preview(file_path: str, max_size=(260, 180)):
         except Exception as exc:
             raise gr.Error("PDF preview requires pypdfium2. Please install it or upload an image.") from exc
 
-        pdf = pdfium.PdfDocument(file_path)
-        try:
-            if len(pdf) == 0:
-                return None
-            page = pdf[0]
+        with PDFIUM_LOCK:
+            pdf = pdfium.PdfDocument(file_path)
             try:
-                bmp = page.render(scale=100 / 72)
+                if len(pdf) == 0:
+                    return None
+                page = pdf[0]
                 try:
-                    image = bmp.to_pil().convert("RGB")
+                    bmp = page.render(scale=100 / 72)
+                    try:
+                        image = bmp.to_pil().convert("RGB")
+                    finally:
+                        bmp.close()
                 finally:
-                    bmp.close()
+                    page.close()
             finally:
-                page.close()
-        finally:
-            pdf.close()
+                pdf.close()
     else:
         image = open_oriented_image(file_path).convert("RGB")
 
@@ -549,7 +601,6 @@ def create_gradio_app(
     skip_preprocess=False,
     end2end=False,
     max_pages=20,
-    pdf_render_workers=4,
     preprocess_wait_seconds=1.0,
 ):
     backend_config = BackendConfig(
@@ -570,7 +621,6 @@ def create_gradio_app(
         page_max_inflight,
         backend_manager=DEFAULT_BACKEND_MANAGER,
         batch_wait_seconds=preprocess_wait_seconds,
-        pdf_render_workers=pdf_render_workers,
     )
     atexit.register(service_pool.close)
 
@@ -782,7 +832,6 @@ def main():
     parser.add_argument("--server-max-inflight", type=int, default=1024, help="Maximum in-flight model requests submitted by the demo process.")
     parser.add_argument("--page-max-inflight", type=int, default=256, help="Maximum pages kept in the parsing pipeline at the same time.")
     parser.add_argument("--preprocess-batch-size", type=int, default=32, help="Batch size used by the image preprocessor.")
-    parser.add_argument("--pdf-render-workers", type=int, default=int(os.getenv("MOCR2_PDF_RENDER_WORKERS", "16")), help="Worker threads used for bounded parallel PDF page rendering.")
     parser.add_argument("--preprocess-wait-seconds", type=float, default=float(os.getenv("MOCR2_PREPROCESS_WAIT_SECONDS", "1.0")), help="Maximum seconds to wait for a service preprocess batch to fill.")
     parser.add_argument("--demo-concurrency", type=int, default=int(os.getenv("MOCR2_DEMO_CONCURRENCY", "16")), help="Maximum number of Gradio event handlers running concurrently.")
     parser.add_argument("--max-pages", type=int, default=20, help="Maximum PDF pages copied and parsed per request. No limit is applied to image inputs.")
@@ -807,7 +856,6 @@ def main():
         skip_preprocess=args.skip_preprocess,
         end2end=args.end2end,
         max_pages=args.max_pages,
-        pdf_render_workers=max(1, args.pdf_render_workers),
         preprocess_wait_seconds=max(0.0, args.preprocess_wait_seconds),
     )
     demo.queue(default_concurrency_limit=max(1, args.demo_concurrency)).launch(
