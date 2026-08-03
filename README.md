@@ -222,13 +222,13 @@ After processing and compression, downloading the dataset currently requires app
 #### 1. Install
 Install transformers and flash attention:
 ```bash
-conda create -n MonkeyOCRv2 python=3.10
+conda create -n MonkeyOCRv2 python=3.11
 conda activate MonkeyOCRv2
-pip install torch==2.6.0 torchvision==0.21.0 torchaudio==2.6.0 --index-url https://download.pytorch.org/whl/cu126
-pip install transformers==4.57.6
-pip install flash-attn==2.7.4.post1 --no-build-isolation
-pip install accelerate
-pip install qwen_vl_utils
+pip install torch==2.8.0 torchvision==0.21.0 torchaudio==2.6.0 --index-url https://download.pytorch.org/whl/cu126
+pip install transformers==4.57.1
+pip install accelerate==1.11.0
+pip install qwen_vl_utils==0.0.14
+pip install flash-attn==2.8.3 --no-build-isolation
 ```
 #### 2. Download Model Weights
 Download our model from Huggingface.
@@ -333,6 +333,9 @@ python fastapi/main.py -s http://127.0.0.1:8888 -p 8000
 python fastapi/main.py -h
 ```
 You can access the API documentation at http://localhost:8000/docs to explore available endpoints.
+
+#### 5. Fine-tune
+You can fine-tune MonkeyOCRv2-Parsing with your own data, please reffer to the [training part](https://github.com/Yuliang-Liu/MonkeyOCRv2/tree/main/parsing/train).
 
 ### Document Understanding
 #### 1. Install

@@ -13,6 +13,7 @@ debug/
 *.ipynb
 .idea
 *.egg-info/
+.ipynb_checkpoints
 
 # vscode history
 .history
