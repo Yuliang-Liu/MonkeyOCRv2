@@ -344,7 +344,7 @@ register_model(
     ModelMeta(
         MLLMModelType.monkeyocrv2,
         [ModelGroup([
-            Model('/home/kas/kas_outside/models/monkeyocrv2_pretrain', '/home/kas/kas_outside/models/monkeyocrv2_pretrain'),
+            Model('zenosai/MonkeyOCRv2-B-Parsing', 'zenosai/MonkeyOCRv2-S-Parsing'),
         ])],
         TemplateType.monkeyocrv2,
         get_model_tokenizer_monkeyocrv2,

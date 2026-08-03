@@ -780,7 +780,7 @@ def test_dots_ocr():
 
 
 def test_monkeyocrv2():
-    pt_engine = PtEngine('/home/kas/kas_outside/models/monkeyocrv2_pretrain')
+    pt_engine = PtEngine('zenosai/MonkeyOCRv2-B-Parsing')
     images = ['http://modelscope-open.oss-cn-hangzhou.aliyuncs.com/images/cat.png']
     query = 'describe this image.'
     messages = [{'role': 'user', 'content': query}]
