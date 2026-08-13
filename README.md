@@ -284,7 +284,7 @@ You can also download our model from ModelScope.
 pip install modelscope
 python download_model.py -t modelscope -n MonkeyOCRv2-B-Parsing # or MonkeyOCRv2-S-Parsing
 # use DFlash for faster inference, support MonkeyOCRv2-B-Parsing only for now
-python download_model.py -n MonkeyOCRv2-B-Parsing-DFlash
+python download_model.py -t modelscope -n MonkeyOCRv2-B-Parsing-DFlash
 ```
 
 #### 3. vLLM Serving
