@@ -92,7 +92,7 @@ swift sft \
     --dataset_num_proc 4 \
     --dataset_shuffle True \
     --streaming False \
-    --max_length 16384 \
+    --max_length 8196 \
     --truncation_strategy 'right' \
     --max_pixels $MAX_PIXELS \
     --packing False \
