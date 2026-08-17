@@ -367,6 +367,11 @@ python infer.py -h
 
 Please refer to [`./recognition`](./recognition) for training and evaluation instructions.
 
+### Overlapping Text Segmentation 
+
+Please refer to [MOT](https://github.com/willpat1213/MOTS) for training and evaluation instructions.
+
+
 ## Visualization
 
 Our model supports robust document parsing in real-world scenarios across 17 languages, including Simplified Chinese (ZH), Traditional Chinese (ZH-T), English (EN), Arabic (AR), German (DE), Spanish (ES), French (FR), Hindi (HI), Indonesian (ID), Italian (IT), Japanese (JP), Korean (KO), Dutch (NL), Portuguese (PT), Russian (RU), Thai (TH), and Vietnamese (VI).
