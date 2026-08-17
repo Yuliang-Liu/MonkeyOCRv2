@@ -1,0 +1,4 @@
+# @package _global_
+model:
+  charset_train: charset/ppocr_keys_v1.txt
+  charset_test: charset/ppocr_keys_v1.txt

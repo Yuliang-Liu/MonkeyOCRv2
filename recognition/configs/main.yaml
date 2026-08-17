@@ -1,0 +1,63 @@
+defaults:
+  - _self_
+  - model: parseq_monkey_multiscale
+  - charset: 94_full
+  - dataset: english_monkey
+
+model:
+  _convert_: all
+  img_size: [112, 448]
+  multi_scales:
+    - [112, 448]
+    - [56, 896]
+    - [224, 224]
+    - [448, 112]
+    - [896, 56]
+  max_label_length: 25
+  charset_train: ???
+  charset_test: "0123456789abcdefghijklmnopqrstuvwxyz"
+  batch_size: 512
+  weight_decay: 0.0
+  warmup_pct: 0.075
+
+data:
+  _target_: strhub.data.module.SceneTextDataModule
+  root_dir: data
+  train_dir: _unused_
+  train_gt_json: null
+  val_dir: english/test
+  train_gt_jsons: null
+  train_gt_json_repeats: null
+  include_additional_val: false
+  batch_size: ${model.batch_size}
+  img_size: ${model.img_size}
+  multi_scales: ${model.multi_scales}
+  charset_train: ${model.charset_train}
+  charset_test: ${model.charset_test}
+  max_label_length: ${model.max_label_length}
+  remove_whitespace: true
+  normalize_unicode: true
+  augment: true
+  num_workers: 2
+
+trainer:
+  _target_: pytorch_lightning.Trainer
+  _convert_: all
+  val_check_interval: 5000
+  max_epochs: 20
+  gradient_clip_val: 20
+  accelerator: gpu
+  devices: 1
+
+ckpt_path: null
+pretrained: null
+seed: 3407
+skip_final_validate: false
+
+hydra:
+  output_subdir: config
+  run:
+    dir: outputs/${model.name}/${now:%Y-%m-%d}_${now:%H-%M-%S}
+  sweep:
+    dir: multirun/${model.name}/${now:%Y-%m-%d}_${now:%H-%M-%S}
+    subdir: ${hydra.job.override_dirname}

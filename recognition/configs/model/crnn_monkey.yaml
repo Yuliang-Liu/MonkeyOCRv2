@@ -1,0 +1,17 @@
+name: crnn-monkey
+_target_: strhub.models.crnn.system.CRNN
+
+# Data
+img_size: [112, 448]
+multi_scales: null
+patch_size: [14, 14]
+
+# Architecture
+hidden_size: 256
+leaky_relu: false
+encoder_backend: monkey
+monkey_vit_dir: pretrained/monkeyocr_vit
+
+# Training
+lr: 7e-4
+freeze_mode: none
