@@ -67,7 +67,7 @@ The `<LABEL>` values used in **MonkeyOCRv2-Parsing** include `Caption`, `Footnot
 
 ## 3. Prepare model
 
-Download MonkeyOCRv2-Und from HuggingFace:
+Download MonkeyOCRv2-Parsing from HuggingFace:
 ```bash
 python ../../download_model.py -n MonkeyOCRv2-B-Parsing # or MonkeyOCRv2-S-Parsing
 ```
@@ -76,7 +76,6 @@ You can also download our model from ModelScope:
 pip install modelscope
 python ../../download_model.py -t modelscope -n MonkeyOCRv2-B-Parsing # or MonkeyOCRv2-S-Parsing
 ```
-
 
 ## 4. Training
 
