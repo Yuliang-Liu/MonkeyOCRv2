@@ -7,7 +7,7 @@ export NPROC_PER_NODE=${NPROC_PER_NODE:-1}
 export MASTER_ADDR=${MASTER_ADDR:-"127.0.0.1"}
 export MASTER_PORT=${MASTER_PORT:-$((28500 + $RANDOM % 2000))}
 
-output_dir=checkpoints/monkeyocrv2_full_sft
+output_dir=checkpoints/monkeyocrv2_und_full_sft
 
 export MODELSCOPE_CACHE='checkpoints/cache'
 
@@ -76,14 +76,14 @@ echo "=== resume_options: $resume_options"
 
 export MAX_PIXELS=1003520
 
-LOG_DIR="full_sft/train_$(date +%Y%m%d_%H)"
+LOG_DIR="und_full_sft/train_$(date +%Y%m%d_%H)"
 mkdir -p "$LOG_DIR"
 LOG_FILE="$LOG_DIR/node${NODE_RANK}.log"
 
 swift sft \
-    --model zenosai/MonkeyOCRv2-B-Parsing \
+    --model ../../model_weight/MonkeyOCRv2-B-Und \
     --model_type monkeyocrv2 \
-    --template monkeyocrv2 \
+    --template monkeyocrv2_und \
     --attn_impl flash_attention_2 \
     --dataset /path/to/train.jsonl \
     --load_from_cache_file True \

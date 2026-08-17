@@ -217,6 +217,7 @@ class MLLMTemplateType:
     dots_ocr = 'dots_ocr'
     sail_vl2 = 'sail_vl2'
     monkeyocrv2 = 'monkeyocrv2'
+    monkeyocrv2_und = 'monkeyocrv2_und'
 
     idefics3 = 'idefics3'
     pixtral = 'pixtral'

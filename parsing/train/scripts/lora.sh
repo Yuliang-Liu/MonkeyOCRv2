@@ -7,9 +7,9 @@ export NPROC_PER_NODE=${NPROC_PER_NODE:-1}
 export MASTER_ADDR=${MASTER_ADDR:-"127.0.0.1"}
 export MASTER_PORT=${MASTER_PORT:-$((28500 + $RANDOM % 2000))}
 
-output_dir=checkpoint/monkeyocrv2_lora
+output_dir=checkpoints/monkeyocrv2_lora
 
-export MODELSCOPE_CACHE='checkpoint/cache'
+export MODELSCOPE_CACHE='checkpoints/cache'
 
 get_latest_checkpoint() { 
     local version_folder="$1" 
