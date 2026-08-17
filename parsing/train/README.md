@@ -65,10 +65,21 @@ The `<PROMPT>` and `<CONTENT>` formats for different tasks are listed below:
 
 The `<LABEL>` values used in **MonkeyOCRv2-Parsing** include `Caption`, `Footnote`, `List-item`, `Page-footer`, `Page-header`, `Section-header`, `Text`, `Title`, `Formula`, `Table`, and `Picture`. Among these, all categories except `Formula`, `Table`, and `Picture` use the **Text Recognition** prompt.
 
+## 3. Prepare model
 
-## 3. Training
+Download MonkeyOCRv2-Parsing from HuggingFace:
+```bash
+python ../../download_model.py -n MonkeyOCRv2-B-Parsing # or MonkeyOCRv2-S-Parsing
+```
+You can also download our model from ModelScope:
+```bash
+pip install modelscope
+python ../../download_model.py -t modelscope -n MonkeyOCRv2-B-Parsing # or MonkeyOCRv2-S-Parsing
+```
 
-The following examples use `zenosai/MonkeyOCRv2-B-Parsing`. You may replace it with `zenosai/MonkeyOCRv2-S-Parsing` or a local checkpoint path. You should replace `/path/to/train.jsonl` with your own dataset path and adjust the batch size, sequence length, gradient accumulation, and number of GPUs according to your data and hardware. You can customize the training configuration by modifying the arguments in the training scripts. For a complete list of available options, please refer to the [official ms-swift documentation](https://swift.readthedocs.io/zh-cn/v3.11/Instruction/Command-line-parameters.html).
+## 4. Training
+
+The following examples use `MonkeyOCRv2-B-Parsing`. You may replace it with `MonkeyOCRv2-S-Parsing`. You should replace `/path/to/train.jsonl` with your own dataset path and adjust the batch size, sequence length, gradient accumulation, and number of GPUs according to your data and hardware. You can customize the training configuration by modifying the arguments in the training scripts. For a complete list of available options, please refer to the [official ms-swift documentation](https://swift.readthedocs.io/zh-cn/v3.11/Instruction/Command-line-parameters.html).
 
 *Note: The original MonkeyOCRv2-Parsing is trained with max pixels of 1003520 and max sequence length of 16384.*
 
