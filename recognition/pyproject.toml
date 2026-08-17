@@ -1,0 +1,41 @@
+[build-system]
+requires = ["setuptools", "setuptools-scm"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "monkeyocrv2-rec"
+version = "1.0.0"
+description = "Scene text recognition with MonkeyOCRv2-S and PARSeq or CRNN decoders"
+readme = "README.md"
+requires-python = ">=3.10"
+
+[tool.setuptools.packages.find]
+include = ["strhub*"]
+
+[tool.setuptools]
+license-files = ["NOTICE", "LICENSE"]
+
+[tool.pyink]
+line-length = 120
+pyink-use-majority-quotes = true
+
+[tool.isort]
+py_version = "auto"
+profile = "django"
+line_length = 120
+ignore_comments = true  # To clear unused fmt: skip comments
+known_torch = ["torch", "torchvision"]
+known_torchlibs = ["timm", "pytorch_lightning"]
+sections = ["FUTURE", "STDLIB", "THIRDPARTY", "TORCH", "TORCHLIBS", "FIRSTPARTY", "LOCALFOLDER"]
+
+[tool.ruff]
+fix = true
+show-fixes = true
+line-length = 120
+output-format = "grouped"
+
+[tool.ruff.lint.pydocstyle]
+convention = "google"
+
+[tool.ruff.lint.flake8-quotes]
+inline-quotes = "single"

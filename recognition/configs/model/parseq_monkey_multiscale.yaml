@@ -1,0 +1,26 @@
+name: parseq-monkey-multiscale
+_target_: strhub.models.parseq.system.PARSeq
+patch_size: [14, 14]
+multi_scales:
+  - [112, 448]
+  - [56, 896]
+  - [224, 224]
+  - [448, 112]
+  - [896, 56]
+embed_dim: 384
+enc_num_heads: 6
+enc_mlp_ratio: 4
+enc_depth: 12
+dec_num_heads: 12
+dec_mlp_ratio: 4
+dec_depth: 1
+encoder_backend: monkey
+monkey_vit_dir: pretrained/monkeyocr_vit
+lr: 7e-4
+perm_num: 6
+perm_forward: true
+perm_mirrored: true
+decode_ar: true
+refine_iters: 2
+dropout: 0.1
+freeze_mode: none

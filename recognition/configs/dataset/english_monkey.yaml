@@ -1,0 +1,8 @@
+# @package _global_
+data:
+  root_dir: data
+  train_dir: english/train
+  train_gt_json: null
+  val_dir: english/test
+  include_additional_val: false
+  normalize_unicode: true
