@@ -703,7 +703,7 @@ def otsl_to_html(otsl_str):
                 grid.append([])
             continue
         
-        parts = re.findall(r'<([a-z]+)>(.*?)(?=<[a-z]+>|$)', row_str)
+        parts = re.findall(r'<([a-z]+)>(.*?)(?=<[a-z]+>|$)', row_str, flags=re.DOTALL)
         
         if r_idx >= len(grid):
             grid.append([])
@@ -797,7 +797,7 @@ def otsl_to_html(otsl_str):
                     attrs.append(f'colspan="{cell["colspan"]}"')
                 
                 attr_str = ' ' + ' '.join(attrs) if attrs else ''
-                text = escape(cell['text'])
+                text = '<br>'.join(escape(part) for part in cell['text'].replace('\r\n', '\n').replace('\r', '\n').split('\n'))
                 html_parts.append(f'<td{attr_str}>{text}</td>')
         html_parts.append('</tr>')
     
