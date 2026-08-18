@@ -336,11 +336,11 @@ python fastapi/main.py -h
 You can access the API documentation at http://localhost:8000/docs to explore available endpoints.
 
 #### 5. Fine-tune
-You can fine-tune MonkeyOCRv2-Parsing with your own data, please reffer to the [training part](https://github.com/Yuliang-Liu/MonkeyOCRv2/tree/main/parsing/train).
+You can fine-tune MonkeyOCRv2-Parsing with your own data, please reffer to the [training part](parsing/train/README.md).
 
 ### Document Understanding
 #### 1. Install
-See install part of MonkeyOCRv2.
+See install part of MonkeyOCRv2 vision encoder.
 
 #### 2. Download Model Weights
 Download our model from Huggingface.
@@ -363,6 +363,8 @@ python infer.py \
 # Show help messages
 python infer.py -h
 ```
+#### 4. Fine-tune
+You can fine-tune MonkeyOCRv2-Parsing with your own data, please reffer to the [training part](understanding/train/README.md).
 
 ### Scene Text Recognition
 
