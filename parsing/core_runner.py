@@ -703,7 +703,7 @@ def otsl_to_html(otsl_str):
                 grid.append([])
             continue
         
-        parts = re.findall(r'<([a-z]+)>(.*?)(?=<[a-z]+>|$)', row_str)
+        parts = re.findall(r'<([a-z]+)>(.*?)(?=<[a-z]+>|$)', row_str, flags=re.DOTALL)
         
         if r_idx >= len(grid):
             grid.append([])
