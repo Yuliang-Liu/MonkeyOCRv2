@@ -2,7 +2,7 @@
 
 ## 1. Installation
 
-Use the same environment with `parsing/train`:
+Use the same environment with [`parsing/train`](../../parsing/train/README.md#1-installation):
 
 ```bash
 conda create -n monkeyocrv2-train python=3.11 -y
@@ -41,7 +41,7 @@ python ../../download_model.py -t modelscope -n MonkeyOCRv2-B-Und # or MonkeyOCR
 
 The following examples use `MonkeyOCRv2-B-Und`. You may replace it with `MonkeyOCRv2-S-Und`. You should replace `/path/to/train.jsonl` with your own dataset path and adjust the batch size, sequence length, gradient accumulation, and number of GPUs according to your data and hardware. You can customize the training configuration by modifying the arguments in the training scripts. For a complete list of available options, please refer to the [official ms-swift documentation](https://swift.readthedocs.io/zh-cn/v3.11/Instruction/Command-line-parameters.html).
 
-*Note: The original MonkeyOCRv2-Parsing is trained with max pixels of 1003520 and max sequence length of 8196.*
+*Note: The original MonkeyOCRv2-Und is trained with max pixels of 1003520 and max sequence length of 8196.*
 
 ```bash
 export CUDA_VISIBLE_DEVICES=0

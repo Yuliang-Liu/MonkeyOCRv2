@@ -364,7 +364,7 @@ python infer.py \
 python infer.py -h
 ```
 #### 4. Fine-tune
-You can fine-tune MonkeyOCRv2-Parsing with your own data, please reffer to the [training part](understanding/train/README.md).
+You can fine-tune MonkeyOCRv2-Und with your own data, please reffer to the [training part](understanding/train/README.md).
 
 ### Scene Text Recognition
 
