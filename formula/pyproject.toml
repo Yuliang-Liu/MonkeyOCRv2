@@ -1,0 +1,14 @@
+[project]
+name = "monkeyocrv2-formula"
+version = "0.1.0"
+description = "Formula recognition with UniMERNet-T and MonkeyOCRv2-S visual encoder"
+requires-python = ">=3.10"
+readme = "README.md"
+license = {text = "Apache-2.0"}
+
+[tool.setuptools.packages.find]
+include = ["unimernet*"]
+
+[build-system]
+requires = ["setuptools>=61", "wheel"]
+build-backend = "setuptools.build_meta"

@@ -1,0 +1,81 @@
+model:
+  arch: unimernet
+  model_type: unimernet
+  model_config:
+    model_name: ./models/unimernet_tiny
+    max_seq_len: 1536
+    encoder_backend: monkeyocrv2
+    monkey_encoder_path: ./models/monkeyocrv2_vit
+    monkey_use_native_token_order: True
+    monkey_use_adapter_bridge: False
+    freeze_encoder: True
+
+  load_pretrained: False
+  load_finetuned: False
+  tokenizer_config:
+    path: ./models/unimernet_tiny
+
+datasets:
+  formula_rec_train:
+    sample_ratio: 1
+    vis_processor:
+      train:
+        name: "formula_image_monkey_native_fixed_aug_train"
+        image_size: [196, 672]
+        crop_margin: True
+    text_processor:
+      train:
+        name: "blip_caption"
+        max_words: 1536
+    build_info:
+      images: ./data/UniMER1M_HME100K_merged/images
+      annotation: ./data/UniMER1M_HME100K_merged/train.txt
+
+  formula_rec_eval:
+    vis_processor:
+      eval:
+        name: "formula_image_monkey_native_fixed_eval"
+        image_size: [196, 672]
+        crop_margin: True
+    text_processor:
+      eval:
+        name: "blip_caption"
+        max_words: 1536
+    build_info:
+      images: ./data/UniMER-Test/cpe
+      annotation: ./data/UniMER-Test/cpe.txt
+
+run:
+  runner: runner_iter
+  task: unimernet_train
+  lr_sched: "linear_warmup_cosine_lr"
+  init_lr: 1e-4
+  encoder_lr_scale: 1.0
+  decoder_lr_scale: 1.0
+  enc_to_dec_proj_lr_scale: 1.0
+  # Original 300k cosine LR at 50k iters, used so stage2 starts continuously.
+  min_lr: 9.330194006220303e-05
+  warmup_lr: 1e-5
+  weight_decay: 0.05
+  batch_size_train: 16
+  batch_size_eval: 128
+  accum_grad_iters: 1
+  num_workers: 8
+  warmup_steps: 833
+  iters_per_inner_epoch: 25000
+  max_iters: 50000
+  milestone: []
+  seed: 42
+  output_dir: "../outputs/monkeyocrv2_s_stage1_freeze50k"
+  amp: True
+  resume_ckpt_path: null
+  evaluate: False
+  train_splits: ["train"]
+  valid_splits: ["eval"]
+  device: "cuda"
+  world_size: 1
+  dist_url: "env://"
+  distributed: True
+  distributed_type: ddp
+  generate_cfg:
+    temperature: 0.0

@@ -1,0 +1,6 @@
+datasets:
+  formula_rec_train:
+    data_type: images
+    build_info:
+      images: ./data/UniMER1M/images
+      annotation: ./data/UniMER1M/train.txt

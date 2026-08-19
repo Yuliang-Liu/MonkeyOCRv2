@@ -1,0 +1,6 @@
+datasets:
+  formula_rec_eval:
+    data_type: images
+    build_info:
+      images: ./data/UniMER-Test/cpe
+      annotation: ./data/UniMER-Test/cpe.txt

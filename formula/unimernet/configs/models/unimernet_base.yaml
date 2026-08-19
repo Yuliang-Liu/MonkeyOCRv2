@@ -1,0 +1,31 @@
+model:
+  arch: unimernet
+  load_finetuned: False
+  load_pretrained: False
+  pretrained: "path/to/pretrained/weight"
+  finetuned: ""
+  tokenizer_name: nougat
+  tokenizer_config:
+    path: ./models/unimernet
+  model_name: unimernet
+  model_config:
+    max_seq_len: 384
+
+
+preprocess:
+  vis_processor:
+    train:
+      name: "formula_image_train"
+      image_size:
+        - 192
+        - 672
+    eval:
+      name: "formula_image_eval"
+      image_size:
+        - 192
+        - 672
+  text_processor:
+    train:
+      name: "blip_caption"
+    eval:
+      name: "blip_caption"
