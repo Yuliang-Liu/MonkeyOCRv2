@@ -846,7 +846,7 @@ def main():
     parser = argparse.ArgumentParser(description="Start the MonkeyOCRv2 Gradio demo.")
     parser.add_argument("--model-path", default=DEFAULT_MODEL_PATH, help="Path to the model weights used by the preprocessor.")
     parser.add_argument("--output-dir", "-o", default=DEFAULT_OUTPUT_DIR, help="Directory where demo request outputs are saved.")
-    parser.add_argument("--server-url", "-s", dest="server_url", default="", help="Required vLLM OpenAI-compatible server URL, for example http://127.0.0.1:8888.")
+    parser.add_argument("--server-url", "-s", dest="server_url", required=True, help="vLLM OpenAI-compatible server URL, for example http://127.0.0.1:8888.")
     parser.add_argument("--served-model-name", default="MonkeyOCRv2", help="Model name exposed by vLLM serve.")
     parser.add_argument("--request-timeout", type=int, default=300, help="HTTP request timeout in seconds when using vLLM serve.")
     parser.add_argument("--http-max-retries", type=int, default=5, help="Maximum retries for transient vLLM server HTTP failures.")
