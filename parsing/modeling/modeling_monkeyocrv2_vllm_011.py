@@ -1,7 +1,7 @@
 # SPDX-License-Identifier: Apache-2.0
 # SPDX-FileCopyrightText: Copyright contributors to the vLLM project
 from collections.abc import Iterable, Mapping
-from typing import Annotated, Literal, TypeAlias
+from typing import Annotated, Literal, TypeAlias, Optional, Any
 
 import torch
 import torch.nn as nn
@@ -9,6 +9,7 @@ import torch.nn.functional as F
 from torch.nn import LayerNorm
 from transformers.models.qwen2_vl import Qwen2VLProcessor
 
+from vllm import ModelRegistry
 from vllm.attention.backends.registry import AttentionBackendEnum
 from vllm.attention.layer import (
     check_upstream_fa_availability,
@@ -55,15 +56,73 @@ from vllm.model_executor.models.vision import get_vit_attn_backend
 from vllm.multimodal import MULTIMODAL_REGISTRY
 from vllm.multimodal.inputs import MultiModalDataDict
 from vllm.sequence import IntermediateTensors
-from vllm.transformers_utils.configs.dotsocr import DotsOCRConfig, DotsVisionConfig
 from vllm.utils.tensor_schema import TensorSchema, TensorShape
 
 from vllm.model_executor.models.vision import run_dp_sharded_mrope_vision_model
 
+from transformers import PretrainedConfig, Qwen3Config
+
 IMAGE_TOKEN = "<|image_pad|>"
 
+class MonkeyOCRv2VisionConfig(PretrainedConfig):
+    model_type: str = "monkeyocr_vit"
 
-class DotsOCRImagePixelInputs(TensorSchema):
+    def __init__(
+        self,
+        embed_dim: int = 1536,  # vision encoder embed size
+        hidden_size: int = 1536,  # after merger hidden size
+        intermediate_size: int = 4224,
+        num_hidden_layers: int = 42,
+        num_attention_heads: int = 12,
+        num_channels: int = 3,
+        patch_size: int = 14,
+        spatial_merge_size: int = 2,
+        temporal_patch_size: int = 1,
+        rms_norm_eps: float = 1e-5,
+        use_bias: bool = False,
+        attn_implementation="flash_attention_2",  # "eager","sdpa","flash_attention_2"
+        initializer_range=0.02,
+        init_merger_std=0.02,
+        is_causal=False,  # ve causal forward
+        post_norm=True,
+        gradient_checkpointing=False,
+        **kwargs: Any,
+    ):
+        super().__init__(**kwargs)
+        self.embed_dim = embed_dim
+        self.hidden_size = hidden_size
+        self.intermediate_size = intermediate_size
+        self.num_hidden_layers = num_hidden_layers
+        self.num_attention_heads = num_attention_heads
+        self.num_channels = num_channels
+        self.patch_size = patch_size
+        self.spatial_merge_size = spatial_merge_size
+        self.temporal_patch_size = temporal_patch_size
+        self.rms_norm_eps = rms_norm_eps
+        self.use_bias = use_bias
+        self.attn_implementation = attn_implementation
+        self.initializer_range = initializer_range
+        self.init_merger_std = init_merger_std
+        self.is_causal = is_causal
+        self.post_norm = post_norm
+        self.gradient_checkpointing = gradient_checkpointing
+
+class MonkeyOCRv2Config(Qwen3Config):
+    model_type = "monkeyocrv2"
+    def __init__(self, 
+        image_token_id = 151655, 
+        video_token_id = 151656,
+        vision_config: Optional[dict] = None, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.image_token_id = image_token_id
+        self.video_token_id = video_token_id
+        self.vision_config = MonkeyOCRv2VisionConfig(**(vision_config or {}))
+
+    def save_pretrained(self, save_directory, **kwargs):
+        self._auto_class = None
+        super().save_pretrained(save_directory, **kwargs)
+
+class MonkeyOCRv2ImagePixelInputs(TensorSchema):
     """
     Dimensions:
         - np: The total number of patches over each image over each prompt in
@@ -78,7 +137,7 @@ class DotsOCRImagePixelInputs(TensorSchema):
     image_grid_thw: Annotated[torch.Tensor, TensorShape("ni", 3)]
 
 
-class DotsOCRImageEmbeddingInputs(TensorSchema):
+class MonkeyOCRv2ImageEmbeddingInputs(TensorSchema):
     """
     Dimensions:
         - nf: Number of image features
@@ -92,10 +151,10 @@ class DotsOCRImageEmbeddingInputs(TensorSchema):
     image_grid_thw: Annotated[torch.Tensor, TensorShape("ni", 3)]
 
 
-DotsOCRImageInputs: TypeAlias = DotsOCRImagePixelInputs | DotsOCRImageEmbeddingInputs
+MonkeyOCRv2ImageInputs: TypeAlias = MonkeyOCRv2ImagePixelInputs | MonkeyOCRv2ImageEmbeddingInputs
 
 
-class DotsOCRDummyInputsBuilder(Qwen2VLDummyInputsBuilder):
+class MonkeyOCRv2DummyInputsBuilder(Qwen2VLDummyInputsBuilder):
     def get_dummy_text(self, mm_counts: Mapping[str, int]) -> str:
         num_images = mm_counts.get("image", 0)
         return IMAGE_TOKEN * num_images
@@ -123,14 +182,14 @@ class DotsOCRDummyInputsBuilder(Qwen2VLDummyInputsBuilder):
         }
 
 
-class DotsOCRProcessingInfo(Qwen2VLProcessingInfo):
-    def get_hf_config(self) -> DotsOCRConfig:
+class MonkeyOCRv2ProcessingInfo(Qwen2VLProcessingInfo):
+    def get_hf_config(self) -> MonkeyOCRv2Config:
         config = self.ctx.get_hf_config()
-        if not config.__class__.__name__ == "DotsOCRConfig":
-            raise TypeError(f"Expected DotsOCRConfig, got {type(config)}")
+        if not config.__class__.__name__ == "MonkeyOCRv2Config":
+            raise TypeError(f"Expected MonkeyOCRv2Config, got {type(config)}")
 
         if hasattr(config, "vision_config") and isinstance(config.vision_config, dict):
-            config.vision_config = DotsVisionConfig(**config.vision_config)
+            config.vision_config = MonkeyOCRv2VisionConfig(**config.vision_config)
 
         return config
 
@@ -245,7 +304,7 @@ class PatchMerger(nn.Module):
         return x
 
 
-class DotsVisionAttention(nn.Module):
+class MonkeyOCRv2VisionAttention(nn.Module):
     def __init__(
         self,
         config,
@@ -393,7 +452,7 @@ class DotsVisionAttention(nn.Module):
         return out.squeeze(1)
 
 
-class DotsSwiGLUFFN(nn.Module):
+class SwiGLUFFN(nn.Module):
     def __init__(
         self,
         config,
@@ -463,7 +522,7 @@ class DotsSwiGLUFFN(nn.Module):
         return loaded_params
 
 
-class DotsPatchEmbed(nn.Module):
+class PatchEmbed(nn.Module):
     def __init__(self, config):
         super().__init__()
         self.num_channels = config.num_channels
@@ -492,21 +551,21 @@ class DotsPatchEmbed(nn.Module):
         return x
 
 
-class DotsViTPreprocessor(nn.Module):
+class MonkeyOCRv2ViTPreprocessor(nn.Module):
     def __init__(self, config):
         super().__init__()
         self.patch_h = config.patch_size
         self.patch_w = config.patch_size
         self.embed_dim = config.embed_dim
         self.config = config
-        self.patchifier = DotsPatchEmbed(config)
+        self.patchifier = PatchEmbed(config)
 
     def forward(self, x: torch.Tensor, grid_thw=None) -> torch.Tensor:
         tokens = self.patchifier(x, grid_thw)
         return tokens
 
 
-class DotsVisionBlock(nn.Module):
+class MonkeyOCRv2VisionBlock(nn.Module):
     def __init__(
         self,
         config,
@@ -518,7 +577,7 @@ class DotsVisionBlock(nn.Module):
     ):
         super().__init__()
 
-        self.attn = DotsVisionAttention(
+        self.attn = MonkeyOCRv2VisionAttention(
             config,
             config.embed_dim,
             num_heads=config.num_attention_heads,
@@ -529,7 +588,7 @@ class DotsVisionBlock(nn.Module):
             attn_backend_override=attn_backend_override,
         )
         self.norm1 = RMSNorm(config.embed_dim, eps=config.rms_norm_eps)
-        self.mlp = DotsSwiGLUFFN(
+        self.mlp = SwiGLUFFN(
             config,
             quant_config=quant_config,
             prefix=f"{prefix}.mlp",
@@ -557,10 +616,10 @@ class DotsVisionBlock(nn.Module):
         return hidden_states
 
 
-class DotsVisionTransformer(nn.Module):
+class MonkeyOCRv2VisionTransformer(nn.Module):
     def __init__(
         self,
-        config: DotsVisionConfig,
+        config: MonkeyOCRv2VisionConfig,
         quant_config: QuantizationConfig | None = None,
         *,
         num_hidden_layers_override: int | None = None,
@@ -573,7 +632,7 @@ class DotsVisionTransformer(nn.Module):
         self.config = config
         self.spatial_merge_size = config.spatial_merge_size
 
-        self.patch_embed = DotsViTPreprocessor(config)
+        self.patch_embed = MonkeyOCRv2ViTPreprocessor(config)
 
         head_dim = config.embed_dim // config.num_attention_heads
         self.rotary_pos_emb = VisionRotaryEmbedding(head_dim // 2)
@@ -596,7 +655,7 @@ class DotsVisionTransformer(nn.Module):
         )
         self.blocks = nn.ModuleList(
             [
-                DotsVisionBlock(
+                MonkeyOCRv2VisionBlock(
                     config,
                     quant_config=quant_config,
                     prefix=f"{prefix}.blocks.{i}",
@@ -659,7 +718,6 @@ class DotsVisionTransformer(nn.Module):
         pos_ids = torch.cat(pos_ids, dim=0)
         max_grid_size = max(max(h, w) for _, h, w in grid_thw)
         rotary_pos_emb_full = self.rotary_pos_emb(max_grid_size)
-        # rotary_pos_emb = rotary_pos_emb_full[pos_ids].flatten(1)
         emb = rotary_pos_emb_full[pos_ids]
         rotary_pos_emb = torch.stack([emb[:,0], emb[:,1]], dim=2).reshape(emb.shape[0], -1)
         return rotary_pos_emb
@@ -714,10 +772,10 @@ class DotsVisionTransformer(nn.Module):
 
 @MULTIMODAL_REGISTRY.register_processor(
     Qwen2VLMultiModalProcessor,
-    info=DotsOCRProcessingInfo,
-    dummy_inputs=DotsOCRDummyInputsBuilder,
+    info=MonkeyOCRv2ProcessingInfo,
+    dummy_inputs=MonkeyOCRv2DummyInputsBuilder,
 )
-class DotsOCRForCausalLM(nn.Module, SupportsMultiModal, SupportsPP, SupportsLoRA):
+class MonkeyOCRv2ForCausalLM(nn.Module, SupportsMultiModal, SupportsPP, SupportsLoRA):
     merge_by_field_config = True
 
     hf_to_vllm_mapper = WeightsMapper(
@@ -754,12 +812,12 @@ class DotsOCRForCausalLM(nn.Module, SupportsMultiModal, SupportsPP, SupportsLoRA
     def __init__(self, *, vllm_config: VllmConfig, prefix: str = ""):
         super().__init__()
 
-        self.config: DotsOCRConfig = vllm_config.model_config.hf_config
+        self.config: MonkeyOCRv2Config = vllm_config.model_config.hf_config
         self.quant_config = vllm_config.quant_config
         multimodal_config = vllm_config.model_config.multimodal_config
         self.use_data_parallel = multimodal_config.mm_encoder_tp_mode == "data"
         if isinstance(self.config.vision_config, dict):
-            vision_config = DotsVisionConfig(**self.config.vision_config)
+            vision_config = MonkeyOCRv2VisionConfig(**self.config.vision_config)
             self.config.vision_config = vision_config
         else:
             vision_config = self.config.vision_config
@@ -768,7 +826,7 @@ class DotsOCRForCausalLM(nn.Module, SupportsMultiModal, SupportsPP, SupportsLoRA
             if multimodal_config is not None
             else None
         )
-        self.vision_tower = DotsVisionTransformer(
+        self.vision_tower = MonkeyOCRv2VisionTransformer(
             vision_config,
             quant_config=self.quant_config,
             prefix=maybe_prefix(prefix, "vision_tower"),
@@ -788,7 +846,7 @@ class DotsOCRForCausalLM(nn.Module, SupportsMultiModal, SupportsPP, SupportsLoRA
 
     def _parse_and_validate_image_input(
         self, **kwargs: object
-    ) -> DotsOCRImageInputs | None:
+    ) -> MonkeyOCRv2ImageInputs | None:
         pixel_values = kwargs.pop("pixel_values", None)
         image_embeds = kwargs.pop("image_embeds", None)
         image_grid_thw = kwargs.pop("image_grid_thw", None)
@@ -797,21 +855,21 @@ class DotsOCRForCausalLM(nn.Module, SupportsMultiModal, SupportsPP, SupportsLoRA
             return None
 
         if pixel_values is not None:
-            return DotsOCRImagePixelInputs(
+            return MonkeyOCRv2ImagePixelInputs(
                 type="pixel_values",
                 pixel_values=pixel_values,
                 image_grid_thw=image_grid_thw,
             )
 
         if image_embeds is not None:
-            return DotsOCRImageEmbeddingInputs(
+            return MonkeyOCRv2ImageEmbeddingInputs(
                 type="image_embeds",
                 image_embeds=image_embeds,
                 image_grid_thw=image_grid_thw,
             )
 
     def _process_image_input(
-        self, image_input: DotsOCRImageInputs
+        self, image_input: MonkeyOCRv2ImageInputs
     ) -> tuple[torch.Tensor, ...]:
         grid_thw = image_input["image_grid_thw"]
         assert grid_thw.ndim == 2
@@ -900,3 +958,7 @@ class DotsOCRForCausalLM(nn.Module, SupportsMultiModal, SupportsPP, SupportsLoRA
             connector="vision_tower.merger",
             tower_model="vision_tower.",
         )
+
+ModelRegistry.register_model(
+    "MonkeyOCRv2ForCausalLM", MonkeyOCRv2ForCausalLM,
+)
