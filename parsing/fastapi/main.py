@@ -71,7 +71,6 @@ class Settings:
         self.model_path = os.getenv("MOCR2_MODEL_PATH", DEFAULT_MODEL_PATH)
         self.server_url = os.getenv("MOCR2_SERVER_URL", "")
         self.served_model_name = os.getenv("MOCR2_SERVED_MODEL_NAME", "MonkeyOCRv2")
-        self.tp = int(os.getenv("MOCR2_TP", "1"))
         self.max_pixels = int(os.getenv("MOCR2_MAX_PIXELS", "1003520"))
         self.request_timeout = int(os.getenv("MOCR2_REQUEST_TIMEOUT", "300"))
         self.http_max_retries = int(os.getenv("MOCR2_HTTP_MAX_RETRIES", "5"))
@@ -103,10 +102,9 @@ backend = {
 
 def configure_from_args():
     parser = argparse.ArgumentParser(description="Start the MonkeyOCRv2 FastAPI service.")
-    parser.add_argument("--model-path", default=settings.model_path, help="Path to the MonkeyOCRv2 model weights used by local Async engine and preprocessor.")
-    parser.add_argument("--server-url", "-s", dest="server_url", default=settings.server_url, help="vLLM OpenAI-compatible server URL, for example http://127.0.0.1:8888. If omitted, local AsyncLLMEngine is used.")
+    parser.add_argument("--model-path", default=settings.model_path, help="Path to the model weights used by the preprocessor.")
+    parser.add_argument("--server-url", "-s", dest="server_url", default=settings.server_url, help="Required vLLM OpenAI-compatible server URL, for example http://127.0.0.1:8888.")
     parser.add_argument("--served-model-name", default=settings.served_model_name, help="Model name exposed by vLLM serve.")
-    parser.add_argument("--tp", type=int, default=settings.tp, help="Tensor parallel size for local AsyncLLMEngine fallback.")
     parser.add_argument("--max-pixels", type=int, default=settings.max_pixels, help="Maximum input image pixels; larger images are resized proportionally.")
     parser.add_argument("--request-timeout", type=int, default=settings.request_timeout, help="HTTP request timeout in seconds when using vLLM serve.")
     parser.add_argument("--http-max-retries", type=int, default=settings.http_max_retries, help="Maximum retries for transient vLLM server HTTP failures.")
@@ -130,7 +128,6 @@ def configure_from_args():
     settings.model_path = args.model_path
     settings.server_url = args.server_url
     settings.served_model_name = args.served_model_name
-    settings.tp = args.tp
     settings.max_pixels = args.max_pixels
     settings.request_timeout = args.request_timeout
     settings.http_max_retries = args.http_max_retries
@@ -155,7 +152,6 @@ def get_backend_config() -> BackendConfig:
         model_path=settings.model_path,
         server_url=settings.server_url,
         served_model_name=settings.served_model_name,
-        tp=settings.tp,
         max_pixels=settings.max_pixels,
         request_timeout=settings.request_timeout,
         http_max_retries=settings.http_max_retries,
@@ -203,7 +199,7 @@ api_admission = asyncio.Semaphore(settings.api_workers)
 
 app = FastAPI(
     title="MonkeyOCRv2 API",
-    description="OCR and document parsing API using MonkeyOCRv2 server/Async inference.",
+    description="OCR and document parsing API using a vLLM OpenAI-compatible server.",
     version="2.0.0",
     debug=settings.debug,
     lifespan=lifespan,
@@ -240,7 +236,7 @@ async def root():
 async def health_check():
     return {
         "status": "healthy" if backend["loaded"] else "initializing",
-        "backend": "server" if settings.server_url else "async",
+        "backend": "server",
         "server_url": settings.server_url or None,
         "model_path": settings.model_path,
         "served_model_name": settings.served_model_name,

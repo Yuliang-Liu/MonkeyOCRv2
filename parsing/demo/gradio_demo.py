@@ -375,28 +375,51 @@ def _current_preview(session_state, file_path):
 
 
 def _markdown_for_preview(md_text: str, md_dir: Path) -> str:
-    def replace_image_with_base64(match):
-        alt_text = match.group(1)
-        img_path = match.group(2)
+    def local_image_data_uri(img_path: str):
         if img_path.startswith(("data:", "http://", "https://")):
-            return match.group(0)
+            return None
 
         full_img_path = Path(img_path)
         if not full_img_path.is_absolute():
             full_img_path = (md_dir / img_path).resolve()
+        else:
+            full_img_path = full_img_path.resolve()
+        output_root = md_dir.resolve().parent
+        if not full_img_path.is_relative_to(output_root):
+            return None
 
         try:
-            if not full_img_path.exists():
-                return match.group(0)
+            if not full_img_path.is_file():
+                return None
             img_data = full_img_path.read_bytes()
             ext = full_img_path.suffix.lower()
-            mime_type = "image/jpeg" if ext in [".jpg", ".jpeg"] else f"image/{ext.lstrip('.')}"
-            img_base64 = base64.b64encode(img_data).decode("ascii")
-            return f"![{alt_text}](data:{mime_type};base64,{img_base64})"
+            mime_type = "image/jpeg" if ext in {".jpg", ".jpeg"} else f"image/{ext.lstrip('.')}"
+            encoded = base64.b64encode(img_data).decode("ascii")
+            return f"data:{mime_type};base64,{encoded}"
         except Exception:
-            return match.group(0)
+            return None
 
-    return re.sub(r"!\[([^\]]*)\]\(([^)]+)\)", replace_image_with_base64, md_text)
+    def replace_image_with_base64(match):
+        alt_text = match.group(1)
+        img_path = match.group(2)
+        data_uri = local_image_data_uri(img_path)
+        if data_uri is None:
+            return match.group(0)
+        return f"![{alt_text}]({data_uri})"
+
+    def replace_html_image_with_base64(match):
+        data_uri = local_image_data_uri(match.group(3))
+        if data_uri is None:
+            return match.group(0)
+        return f"{match.group(1)}{match.group(2)}{data_uri}{match.group(2)}"
+
+    preview = re.sub(r"!\[([^\]]*)\]\(([^)]+)\)", replace_image_with_base64, md_text)
+    return re.sub(
+        r"(<img\b[^>]*?\bsrc\s*=\s*)([\"'])(.*?)(\2)",
+        replace_html_image_with_base64,
+        preview,
+        flags=re.IGNORECASE | re.DOTALL,
+    )
 
 
 def _contains_arabic(text: str) -> bool:
@@ -607,7 +630,6 @@ def create_gradio_app(
         model_path=default_model_path,
         server_url=server_url,
         served_model_name=served_model_name,
-        tp=1,
         max_pixels=1003520,
         request_timeout=request_timeout,
         http_max_retries=http_max_retries,
@@ -822,9 +844,9 @@ def create_gradio_app(
 
 def main():
     parser = argparse.ArgumentParser(description="Start the MonkeyOCRv2 Gradio demo.")
-    parser.add_argument("--model-path", default=DEFAULT_MODEL_PATH, help="Path to the MonkeyOCRv2 model weights used by local Async engine and preprocessor.")
+    parser.add_argument("--model-path", default=DEFAULT_MODEL_PATH, help="Path to the model weights used by the preprocessor.")
     parser.add_argument("--output-dir", "-o", default=DEFAULT_OUTPUT_DIR, help="Directory where demo request outputs are saved.")
-    parser.add_argument("--server-url", "-s", dest="server_url", default="", help="vLLM OpenAI-compatible server URL, for example http://127.0.0.1:8888. If omitted, local AsyncLLMEngine is used.")
+    parser.add_argument("--server-url", "-s", dest="server_url", required=True, help="vLLM OpenAI-compatible server URL, for example http://127.0.0.1:8888.")
     parser.add_argument("--served-model-name", default="MonkeyOCRv2", help="Model name exposed by vLLM serve.")
     parser.add_argument("--request-timeout", type=int, default=300, help="HTTP request timeout in seconds when using vLLM serve.")
     parser.add_argument("--http-max-retries", type=int, default=5, help="Maximum retries for transient vLLM server HTTP failures.")

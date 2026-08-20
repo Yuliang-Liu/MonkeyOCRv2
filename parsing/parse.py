@@ -14,9 +14,8 @@ def main():
     parser.add_argument("--input-path", "-i", default="../images_test", help="Input file or folder containing PDFs, images, or both")
     parser.add_argument("--model-path", "-m", default="../model_weight/MonkeyOCRv2-B-Parsing", help="Model path")
     parser.add_argument("--output-path", "-o", default="./output/test", help="Output directory")
-    parser.add_argument("--tp", type=int, default=1, help="tensor parallel size")
     parser.add_argument("--max-pixels", type=int, default=1003520, help="Maximum input image pixels; larger images are resized proportionally")
-    parser.add_argument("--server-url", "-s", dest="server_url", default="", help="vLLM OpenAI-compatible server URL, for example http://127.0.0.1:8000")
+    parser.add_argument("--server-url", "-s", dest="server_url", required=True, help="vLLM OpenAI-compatible server URL, for example http://127.0.0.1:8000")
     parser.add_argument("--served-model-name", default="MonkeyOCRv2", help="Model name exposed by vLLM serve")
     parser.add_argument("--request-timeout", type=int, default=300, help="HTTP request timeout in seconds when using vLLM serve")
     parser.add_argument("--http-max-retries", type=int, default=5, help="Maximum retries for transient vLLM server HTTP failures")
@@ -39,7 +38,6 @@ def main():
         model_path=args.model_path,
         server_url=args.server_url,
         served_model_name=args.served_model_name,
-        tp=args.tp,
         max_pixels=args.max_pixels,
         request_timeout=args.request_timeout,
         http_max_retries=args.http_max_retries,
