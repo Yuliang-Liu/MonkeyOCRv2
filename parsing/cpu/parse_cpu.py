@@ -1,6 +1,12 @@
 import argparse
+import sys
+from pathlib import Path
 
-from core_runner_cpu import (
+PARSING_DIR = Path(__file__).resolve().parents[1]
+if str(PARSING_DIR) not in sys.path:
+    sys.path.insert(0, str(PARSING_DIR))
+
+from cpu.core_runner import (
     BackendConfig,
     BackendManager,
     PipelineConfig,

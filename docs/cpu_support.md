@@ -54,12 +54,12 @@ python download_model.py -n MonkeyOCRv2-B-Parsing-DFlash
 ```bash
 cd .\parsing\
 # Parse a single document
-..\.venv\Scripts\python.exe parse_cpu.py `
+..\.venv\Scripts\python.exe cpu\parse_cpu.py `
     -i ..\images_test\vqa.png `
     -m ..\model_weight\MonkeyOCRv2-B-Parsing `
     -o output\test_cpu
 # Parse a directory containing PDFs or images
-..\.venv\Scripts\python.exe parse_cpu.py `
+..\.venv\Scripts\python.exe cpu\parse_cpu.py `
     -i ..\images_test `
     -m ..\model_weight\MonkeyOCRv2-B-Parsing `
     -o output\test_cpu
@@ -71,7 +71,7 @@ cd .\parsing\
 
 ```bash
 cd .\parsing\
-..\.venv\Scripts\python.exe demo\gradio_demo_cpu.py `
+..\.venv\Scripts\python.exe cpu\gradio_demo_cpu.py `
     --model-path ..\model_weight\MonkeyOCRv2-B-Parsing `
     --output-dir output\demo_cpu_outputs `
     --demo-server-name 127.0.0.1 `
@@ -133,12 +133,12 @@ python download_model.py -n MonkeyOCRv2-B-Parsing-DFlash
 ```bash
 cd parsing
 # Parse a single document
-python parse_cpu.py \
+python cpu/parse_cpu.py \
     -i ../images_test/vqa.png \
     -m ../model_weight/MonkeyOCRv2-B-Parsing \
     -o output/test_cpu
 # Parse a directory containing PDFs or images
-python parse_cpu.py \
+python cpu/parse_cpu.py \
     -i ../images_test \
     -m ../model_weight/MonkeyOCRv2-B-Parsing \
     -o output/test_cpu
@@ -150,7 +150,7 @@ python parse_cpu.py \
 
 ```bash
 cd parsing
-python demo/gradio_demo_cpu.py \
+python cpu/gradio_demo_cpu.py \
     --model-path ../model_weight/MonkeyOCRv2-B-Parsing \
     --output-dir output/demo_cpu_outputs \
     --demo-server-name 127.0.0.1 \
@@ -158,5 +158,5 @@ python demo/gradio_demo_cpu.py \
     --demo-concurrency 1 \
     --page-max-inflight 1
 # Show help messages
-python demo/gradio_demo_cpu.py -h
+python cpu/gradio_demo_cpu.py -h
 ```

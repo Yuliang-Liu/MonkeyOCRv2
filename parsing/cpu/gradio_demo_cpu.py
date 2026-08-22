@@ -25,7 +25,7 @@ EXAMPLE_EXTS = IMAGE_EXTS | {".pdf"}
 
 
 try:
-    from core_runner_cpu import (
+    from cpu.core_runner import (
         BackendConfig,
         PipelineConfig,
         PDFIUM_LOCK,
