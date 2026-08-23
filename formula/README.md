@@ -197,6 +197,18 @@ the OmniDocBench evaluator and run:
 RUN_OFFICIAL=1 ODB_EVAL_REPO=/path/to/OmniDocBench bash run/eval_omnidocbench.sh
 ```
 
+### Reproducing Table Metrics
+
+The reported CDM / ExpRate numbers are sensitive to the CDM rendering environment.
+For table-level reproduction, use the same CDM pipeline:
+
+- TeX Live 2025, not arbitrary system TeX.
+- Original CDM color rendering based on `\mathcolor[RGB]`.
+- Fixed PDF-to-image backend used by the released evaluation.
+- For OmniDocBench, run the official OmniDocBench evaluator first and use its exported `*_formula.json` as
+CDM input.
+
+
 ## Acknowledgements
 
 This project builds on [UniMERNet](https://github.com/opendatalab/UniMERNet),
