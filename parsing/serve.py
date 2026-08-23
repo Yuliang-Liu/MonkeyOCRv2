@@ -2,16 +2,40 @@
 import argparse
 import json
 import os
+import re
 import socket
 import sys
 import inspect
+from importlib.metadata import PackageNotFoundError, version
 from pathlib import Path
 
-from modeling import modeling_monkeyocrv2_vllm  # noqa: F401
 from vllm.entrypoints.cli.main import main as vllm_main
 
 
 PARSING_DIR = Path(__file__).resolve().parent
+
+
+def vllm_version_tuple() -> tuple[int, ...]:
+    try:
+        raw_version = version("vllm")
+    except PackageNotFoundError as exc:
+        raise SystemExit("vLLM is not installed in the current Python environment.") from exc
+    numbers = re.match(r"^(\d+(?:\.\d+)*)", raw_version)
+    if not numbers:
+        raise SystemExit(f"Unable to determine the installed vLLM version: {raw_version}")
+    return tuple(int(part) for part in numbers.group(1).split("."))
+
+
+def import_model_registration() -> str:
+    installed = vllm_version_tuple()
+    if installed < (0, 12):
+        from modeling import modeling_monkeyocrv2_vllm_011  # noqa: F401
+
+        return "modeling.modeling_monkeyocrv2_vllm_011"
+
+    from modeling import modeling_monkeyocrv2_vllm  # noqa: F401
+
+    return "modeling.modeling_monkeyocrv2_vllm"
 
 
 def ensure_model_path(model_path: str):
@@ -133,6 +157,9 @@ def main():
     args = parser.parse_args()
 
     ensure_model_path(args.model_path)
+    installed_version = vllm_version_tuple()
+    if installed_version < (0, 12) and args.draft_model:
+        parser.error("--draft-model requires vLLM >= 0.12; DFlash is unavailable in vLLM < 0.12")
     if args.draft_model:
         ensure_model_path(args.draft_model)
         ensure_dflash_support()
@@ -150,7 +177,8 @@ def main():
             args.extra_args = args.extra_args[1:]
         argv.extend(args.extra_args)
 
-    print("Imported modeling.modeling_monkeyocrv2_vllm for vLLM model registration.")
+    registration_module = import_model_registration()
+    print(f"Imported {registration_module} for vLLM model registration.")
     print("Running:", " ".join(argv))
     sys.argv = argv
     vllm_main()
