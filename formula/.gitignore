@@ -1,0 +1,12 @@
+__pycache__/
+*.py[cod]
+.DS_Store
+.pytest_cache/
+
+/cache/
+/data/
+/model_weight/
+/models/
+/outputs/
+/eval_results/
+/logs_train/
