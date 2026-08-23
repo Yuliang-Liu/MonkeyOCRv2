@@ -14,7 +14,7 @@
 </div>
 
 ## News
-* `2026.08.17` ⚡ Releasing training and evaluation instructions for [Recognition](https://github.com/Yuliang-Liu/MonkeyOCRv2#scene-text-recognition) and [Overlapping Text Segmentation](https://github.com/Yuliang-Liu/MonkeyOCRv2#overlapping-text-segmentation).
+* `2026.08.17` ⚡ Releasing training and evaluation instructions for [Recognition](https://github.com/Yuliang-Liu/MonkeyOCRv2#scene-text-recognition), [Overlapping Text Segmentation](https://github.com/Yuliang-Liu/MonkeyOCRv2#overlapping-text-segmentation) and [Formula](https://github.com/Yuliang-Liu/MonkeyOCRv2#formula-recognition).
 * `2026.07.24` ⚡ We released [MonkeyOCRv2-B-Parsing-DFlash](https://huggingface.co/zenosai/MonkeyOCRv2-B-Parsing-DFlash), enabling vLLM serving with DFlash for up to 2× faster inference.
 * `2026.07.22` 🏆 MonkeyOCRv2-B-Parsing ranks #1 among evaluated open-source models on the official [MDPBench Leaderboard](https://huggingface.co/spaces/Delores-Lin/MDPBench-leaderboard), achieving 83.3 overall across 17 languages, including digital-born and photographed documents.
 * `2026.07.21` 📦 We release [MonkeyDoc v2](https://modelscope.cn/datasets/zenosai/MonkeyDocv2), an open multilingual corpus for document-oriented pretraining. We hope it can serve as a shared data foundation for more transparent, reproducible, and fair comparisons in Document AI.
@@ -370,10 +370,14 @@ You can fine-tune MonkeyOCRv2-Und with your own data, please reffer to the [trai
 
 Please refer to [`./recognition`](./recognition) for training and evaluation instructions.
 
+
 ### Overlapping Text Segmentation 
 
 Please refer to [MOT](https://github.com/willpat1213/MOTS) for training and evaluation instructions.
 
+### Formula Recognition
+
+Please refer to [`./formula`](./formula) for training and evaluation instructions.
 
 ## Visualization
 
