@@ -1,0 +1,9 @@
+matplotlib
+numpy
+packaging
+prettytable
+scipy
+transformers==4.57.1
+timm==1.0.26
+efficientnet_pytorch
+lmdb
