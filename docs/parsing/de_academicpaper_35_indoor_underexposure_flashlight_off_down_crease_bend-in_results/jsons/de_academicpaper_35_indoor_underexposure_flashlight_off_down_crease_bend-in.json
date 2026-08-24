@@ -1,0 +1,87 @@
+{
+ "image_name": "de_academicpaper_35_indoor_underexposure_flashlight_off_down_crease_bend-in.jpg",
+ "image_path": "de_academicpaper_35_indoor_underexposure_flashlight_off_down_crease_bend-in.jpg",
+ "image_size": [
+  1279,
+  2275
+ ],
+ "layouts": [
+  {
+   "bbox": [
+    188,
+    2093,
+    1097,
+    2125
+   ],
+   "label": "Page-header",
+   "page_num": 1,
+   "content": "Schottel et al., Professionalisierung von Schulbegleiter:innen von Kindern und Jugendlichen im Autismu..."
+  },
+  {
+   "bbox": [
+    191,
+    1863,
+    1100,
+    2034
+   ],
+   "label": "Text",
+   "page_num": 1,
+   "content": "turellen Ressourcen (Henn, Himmel, Fegert & Ziegenhain, 2017). Um Schüler:innen im Autismus-Spektrum eine gleichberechtigte Teilhabe am Unterricht zu ermöglichen, werden diese häufig von Schulbegleitungen, bzw. je nach Bundesland auch Integrationsheffer:innen oder Schulassistenz genannt (Dworschak, 2010), im Rahmen der Kinder- und Jugendhilfe bzw. der Eingliederungshilfe betreut (Fegert, Henn & Ziegenhain, 2015; Henn et al., 2017). [1]"
+  },
+  {
+   "bbox": [
+    427,
+    1804,
+    1100,
+    1838
+   ],
+   "label": "Section-header",
+   "page_num": 1,
+   "content": "## 1.1. Aufgabenspektrum & Qualifizierung von Schulbegleitungen"
+  },
+  {
+   "bbox": [
+    188,
+    1178,
+    1113,
+    1793
+   ],
+   "label": "Text",
+   "page_num": 1,
+   "content": "Schulbegleitung ist als Einzelfallhilfe für Schüler:innen definiert, die „aufgrund besonderer Bedürfnisse im Kontext Lernen, Verhalten, Kommunikation, medizinischer Versorgung und/oder Alltagsbewältigung der besonderen und individuellen Unterstützung bei der Verrichtung unterrichtlicher und außerunterrichtlicher Tätigkeiten bedürfen“ (Dworschak, 2010, S. 133f.), mit dem Ziel, Schulbildung und soziale Teilhabe zu ermöglichen (Henn et al., 2017). Es gibt keine einheitliche Aufgabenbeschreibung für Schulbegleiter:innen, vielmehr variiert das Aufgabenspektrum in Abhängigkeit von dem individuellen Unterstützungsbedarf der zu betreuenden Schüler:innen (Henn et al., 2014; Kißgen, Carlitscheck, Fehrmann, Limburg & Franke, 2016; Lübeck & Demmer, 2022). Die Aufgaben umfassen im Kern folgende Bereiche: Unterstützung bei lebenspraktischen Anforderungen (z. B. Hilfen zur Mobilität, Unterstützung bei der Körperpflege), Unterstützung bei Lern- und Arbeitsprozessen (z. B. Aktivierung zur Unterrichtsteilnahme, strukturierende Hilfen), Unterstützung auf sozial-emotionaler Ebene (z. B. Emotionsregulation, Reduzierung des Stressniveaus, Hilfen bei der Konfliktbewältigung) sowie sonstige Aufgaben (z. B. Elterngespräche oder Mitwirkung bei der Erstellung von Förderplänen) (Dworschak, 2012; Henn et al., 2014; Kißgen et al., 2016). Einer empirischen Untersuchung von Henn et al. (2014) mit n = 526 Schulbegleiter:innen an allgemeinbildenden Schulen in Baden-Württemberg zufolge zählten die Unterstützung bei der Umsetzung von Unterrichtsanforderungen sowie bei der Emotionsregulation zu den häufigsten Aufgaben der Schulbegleitungen. [2]"
+  },
+  {
+   "bbox": [
+    193,
+    673,
+    1111,
+    1167
+   ],
+   "label": "Text",
+   "page_num": 1,
+   "content": "Trotz der wachsenden Bewilligungszahlen von Schulbegleitung und dem großen Aufgabenspektrum gibt es weder berufliche Standards oder einheitliche Qualifikationskriterien noch Weiterbildungsstandards für die Ausübung des Berufs (Henn et al., 2014; Kißgen et al., 2016). Dies führt dazu, dass die Entscheidung über die notwendige Basisqualifikation häufig bei den Anstellungs- und Maßnahmenträgern liegt, wobei laut einer Befragung von Schulbegleiter:innen 73% der Schulbegleitungsträger in NRW keine Qualifikation verlangen (Kißgen et al., 2016). Daraus resultiert ein heterogenes Bild im Hinblick auf die Qualifikation von Schulbegleiter:innen: neben Personen mit einer pädagogischen Qualifikation (z. B. Erzieher:innen, Sozialpädagog:innen), werden auch häufig quereinsteigende Personen ohne pädagogische Qualifikation sowie Freiwillige und Studierende als Schulbegleitung eingesetzt (Henn et al., 2014; Kißgen et al., 2016). Der Studie von Henn et al. (2014) zufolge verfügen beispielsweise nur 45,5% der Schulbegleiter:innen in Baden-Württemberg über eine Ausbildung im pädagogischen Bereich. Die Ergebnisse werden durch die Befragungen von Meyer (2017) im Landkreis Göttingen sowie Kißgen et al. (2016) in NRW gestützt, denen zufolge jeweils etwa 45% der Befragten eine einschlägige formale Qualifikation (d. h. im pädagogischen oder pflegerischen Bereich) besitzen. [3]"
+  },
+  {
+   "bbox": [
+    194,
+    480,
+    1111,
+    655
+   ],
+   "label": "Text",
+   "page_num": 1,
+   "content": "Neben fehlenden Standards zur beruflichen Qualifizierung mangelt es an „Weiterbildungsstandards, die im Rahmen einer nachträglichen Qualifizierung für diese Tätigkeit befähigen“ (Kißgen et al., 2016, S. 253) sowie supervisorischen Angeboten und Standards der Kooperation innerhalb von Schule bspw. hinsichtlich der Teilnahme von Schulbegleiter:innen an Konferenzen (Limburg, Frings & Kißgen, 2020). [4]"
+  },
+  {
+   "bbox": [
+    194,
+    218,
+    1111,
+    464
+   ],
+   "label": "Text",
+   "page_num": 1,
+   "content": "Nicht zuletzt aufgrund der fehlenden Rahmenbedingungen und zum Teil unklarer Aufgabenbereiche haben die Schulbegleiter:innen Schwierigkeiten, ihre Rolle im schulischen Setting klar zu definieren und übernehmen vielfältige Positionen, die sich z. T. auch auf andere Personengruppen beziehen (Sarimski & Ritzenthaler, 2020). Die unterschiedlichen Erwartungen, mit denen die Schulbegleiter:innen von Seiten verschiedener Akteur:innen (Eltern, Lehrkräfte, Kostenträger, Schüler:innen) konfrontiert werden, kommen erschwerend hinzu (Fegert et al., 2015). Lübeck (2019) spricht in diesem Zusammenhang von einem Rollenkonflikt, in dem die Schulbe-"
+  }
+ ]
+}

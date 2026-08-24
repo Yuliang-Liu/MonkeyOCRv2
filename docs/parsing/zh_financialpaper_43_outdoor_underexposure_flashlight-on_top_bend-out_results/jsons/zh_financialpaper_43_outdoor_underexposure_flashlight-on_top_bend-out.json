@@ -1,0 +1,223 @@
+{
+ "image_name": "zh_financialpaper_43_outdoor_underexposure_flashlight-on_top_bend-out.jpeg",
+ "image_path": "zh_financialpaper_43_outdoor_underexposure_flashlight-on_top_bend-out.jpeg",
+ "image_size": [
+  1536,
+  2048
+ ],
+ "layouts": [
+  {
+   "bbox": [
+    198,
+    76,
+    373,
+    145
+   ],
+   "label": "Picture",
+   "page_num": 1,
+   "content": "![image](../images/zh_financialpaper_43_outdoor_underexposure_flashlight-on_top_bend-out_sub0.jpg)"
+  },
+  {
+   "bbox": [
+    121,
+    154,
+    373,
+    180
+   ],
+   "label": "Page-header",
+   "page_num": 1,
+   "content": "华发集团旗下企业"
+  },
+  {
+   "bbox": [
+    1332,
+    145,
+    1430,
+    174
+   ],
+   "label": "Page-header",
+   "page_num": 1,
+   "content": "行业周报"
+  },
+  {
+   "bbox": [
+    121,
+    236,
+    473,
+    264
+   ],
+   "label": "Caption",
+   "page_num": 1,
+   "content": "表 4：11 月集成灶各品牌零售端表现"
+  },
+  {
+   "bbox": [
+    118,
+    258,
+    1432,
+    803
+   ],
+   "label": "Table",
+   "page_num": 1,
+   "otsl": "<fcel>渠道<fcel>品牌<fcel>销额同比<lcel><fcel>销量同比<lcel><fcel>均价同比<lcel><fcel>销额市占率<lcel><fcel>市占率同比(pct)<lcel><nl><ucel><ucel><fcel>23M11<fcel>2023累计<fcel>23M11<fcel>2023累计<fcel>23M11<fcel>2023累计<fcel>23M11<fcel>2023累计<fcel>23M11<fcel>2023累计<nl><fcel>线上<fcel>火星人<fcel>-21.4%<fcel>-8.2%<fcel>-22.0%<fcel>-14.2%<fcel>0.8%<fcel>7.0%<fcel>30.9%<fcel>27.3%<fcel>1.67<fcel>2.21<nl><ucel><fcel>亿田<fcel>-4.2%<fcel>-4.7%<fcel>-5.4%<fcel>-8.8%<fcel>1.3%<fcel>4.6%<fcel>13.8%<fcel>15.6%<fcel>3.09<fcel>1.80<nl><ucel><fcel>美大<fcel>-70.5%<fcel>-66.2%<fcel>-75.7%<fcel>-70.2%<fcel>21.3%<fcel>13.2%<fcel>4.6%<fcel>3.4%<fcel>-6.98<fcel>-5.12<nl><ucel><fcel>帅丰<fcel>-2.8%<fcel>1.6%<fcel>-7.0%<fcel>-3.8%<fcel>4.5%<fcel>5.6%<fcel>7.7%<fcel>7.5%<fcel>1.81<fcel>1.28<nl><ucel><fcel>森歌<fcel>-30.9%<fcel>-12.1%<fcel>-39.5%<fcel>-21.5%<fcel>14.4%<fcel>12.0%<fcel>8.4%<fcel>9.5%<fcel>-0.63<fcel>0.39<nl><ucel><fcel>老板<fcel>-83.7%<fcel>-<fcel>-66.1%<fcel>-<fcel>-51.8%<fcel>-<fcel>0.7%<fcel>0.6%<fcel>-2.63<fcel>-<nl><fcel>线下<fcel>火星人<fcel>84.9%<fcel>25.1%<fcel>58.2%<fcel>19.9%<fcel>16.8%<fcel>4.4%<fcel>20.9%<fcel>19.8%<fcel>-4.01<fcel>-7.22<nl><ucel><fcel>亿田<fcel>32.9%<fcel>30.2%<fcel>2.5%<fcel>42.6%<fcel>29.7%<fcel>-8.7%<fcel>14.8%<fcel>9.4%<fcel>-0.13<fcel>1.35<nl><ucel><fcel>美大<fcel>33.7%<fcel>1.6%<fcel>17.4%<fcel>-1.7%<fcel>13.9%<fcel>3.3%<fcel>10.4%<fcel>13.9%<fcel>-6.00<fcel>-4.92<nl><ucel><fcel>帅丰<fcel>564.0%<fcel>4.2%<fcel>300.0%<fcel>-14.4%<fcel>66.0%<fcel>21.7%<fcel>5.1%<fcel>1.2%<fcel>4.98<fcel>0.78<nl><ucel><fcel>森歌<fcel>122.5%<fcel>105.4%<fcel>40.0%<fcel>71.6%<fcel>58.9%<fcel>19.7%<fcel>1.8%<fcel>1.5%<fcel>0.75<fcel>0.68<nl><ucel><fcel>老板<fcel>328%<fcel>-<fcel>352%<fcel>-<fcel>-6.6%<fcel>-<fcel>28.8%<fcel>29.4%<fcel>15.84<fcel>-<nl>",
+   "content": "<table><tr><td rowspan=\"2\">渠道</td><td rowspan=\"2\">品牌</td><td colspan=\"2\">销额同比</td><td colspan=\"2\">销量同比</td><td colspan=\"2\">均价同比</td><td colspan=\"2\">销额市占率</td><td colspan=\"2\">市占率同比(pct)</td></tr><tr><td>23M11</td><td>2023累计</td><td>23M11</td><td>2023累计</td><td>23M11</td><td>2023累计</td><td>23M11</td><td>2023累计</td><td>23M11</td><td>2023累计</td></tr><tr><td rowspan=\"6\">线上</td><td>火星人</td><td>-21.4%</td><td>-8.2%</td><td>-22.0%</td><td>-14.2%</td><td>0.8%</td><td>7.0%</td><td>30.9%</td><td>27.3%</td><td>1.67</td><td>2.21</td></tr><tr><td>亿田</td><td>-4.2%</td><td>-4.7%</td><td>-5.4%</td><td>-8.8%</td><td>1.3%</td><td>4.6%</td><td>13.8%</td><td>15.6%</td><td>3.09</td><td>1.80</td></tr><tr><td>美大</td><td>-70.5%</td><td>-66.2%</td><td>-75.7%</td><td>-70.2%</td><td>21.3%</td><td>13.2%</td><td>4.6%</td><td>3.4%</td><td>-6.98</td><td>-5.12</td></tr><tr><td>帅丰</td><td>-2.8%</td><td>1.6%</td><td>-7.0%</td><td>-3.8%</td><td>4.5%</td><td>5.6%</td><td>7.7%</td><td>7.5%</td><td>1.81</td><td>1.28</td></tr><tr><td>森歌</td><td>-30.9%</td><td>-12.1%</td><td>-39.5%</td><td>-21.5%</td><td>14.4%</td><td>12.0%</td><td>8.4%</td><td>9.5%</td><td>-0.63</td><td>0.39</td></tr><tr><td>老板</td><td>-83.7%</td><td>-</td><td>-66.1%</td><td>-</td><td>-51.8%</td><td>-</td><td>0.7%</td><td>0.6%</td><td>-2.63</td><td>-</td></tr><tr><td rowspan=\"6\">线下</td><td>火星人</td><td>84.9%</td><td>25.1%</td><td>58.2%</td><td>19.9%</td><td>16.8%</td><td>4.4%</td><td>20.9%</td><td>19.8%</td><td>-4.01</td><td>-7.22</td></tr><tr><td>亿田</td><td>32.9%</td><td>30.2%</td><td>2.5%</td><td>42.6%</td><td>29.7%</td><td>-8.7%</td><td>14.8%</td><td>9.4%</td><td>-0.13</td><td>1.35</td></tr><tr><td>美大</td><td>33.7%</td><td>1.6%</td><td>17.4%</td><td>-1.7%</td><td>13.9%</td><td>3.3%</td><td>10.4%</td><td>13.9%</td><td>-6.00</td><td>-4.92</td></tr><tr><td>帅丰</td><td>564.0%</td><td>4.2%</td><td>300.0%</td><td>-14.4%</td><td>66.0%</td><td>21.7%</td><td>5.1%</td><td>1.2%</td><td>4.98</td><td>0.78</td></tr><tr><td>森歌</td><td>122.5%</td><td>105.4%</td><td>40.0%</td><td>71.6%</td><td>58.9%</td><td>19.7%</td><td>1.8%</td><td>1.5%</td><td>0.75</td><td>0.68</td></tr><tr><td>老板</td><td>328%</td><td>-</td><td>352%</td><td>-</td><td>-6.6%</td><td>-</td><td>28.8%</td><td>29.4%</td><td>15.84</td><td>-</td></tr></table>"
+  },
+  {
+   "bbox": [
+    117,
+    809,
+    429,
+    834
+   ],
+   "label": "Caption",
+   "page_num": 1,
+   "content": "资料来源：奥维云网，华金证券研究所"
+  },
+  {
+   "bbox": [
+    115,
+    866,
+    515,
+    893
+   ],
+   "label": "Caption",
+   "page_num": 1,
+   "content": "表 5：11 月扫地机器人各品牌零售端表现"
+  },
+  {
+   "bbox": [
+    115,
+    879,
+    1432,
+    1106
+   ],
+   "label": "Table",
+   "page_num": 1,
+   "otsl": "<fcel>渠道<fcel>品牌<fcel>销额同比<lcel><fcel>销量同比<lcel><fcel>均价同比<lcel><fcel>销额市占率<lcel><fcel>市占率同比(pct)<lcel><nl><ucel><ucel><fcel>23M11<fcel>2023累计<fcel>23M11<fcel>2023累计<fcel>23M11<fcel>2023累计<fcel>23M11<fcel>2023累计<fcel>23M11<fcel>2023累计<nl><fcel>线上<fcel>科沃斯<fcel>-23.1%<fcel>-10.3%<fcel>-25.7%<fcel>-11.8%<fcel>3.5%<fcel>1.7%<fcel>34.1%<fcel>34.8%<fcel>-8.51<fcel>-5.17<nl><ucel><fcel>石头<fcel>13.5%<fcel>16.9%<fcel>15.2%<fcel>18.3%<fcel>-1.5%<fcel>-1.2%<fcel>23.5%<fcel>24.3%<fcel>3.60<fcel>2.88<nl><ucel><fcel>云鲸<fcel>-18.0%<fcel>-17.3%<fcel>-17.8%<fcel>-21.4%<fcel>-0.3%<fcel>5.2%<fcel>12.3%<fcel>12.1%<fcel>-2.11<fcel>-2.99<nl><ucel><fcel>追觅<fcel>81.6%<fcel>104.9%<fcel>41.9%<fcel>75.4%<fcel>28.0%<fcel>16.8%<fcel>16.5%<fcel>13.6%<fcel>7.76<fcel>6.78<nl>",
+   "content": "<table><tr><td rowspan=\"2\">渠道</td><td rowspan=\"2\">品牌</td><td colspan=\"2\">销额同比</td><td colspan=\"2\">销量同比</td><td colspan=\"2\">均价同比</td><td colspan=\"2\">销额市占率</td><td colspan=\"2\">市占率同比(pct)</td></tr><tr><td>23M11</td><td>2023累计</td><td>23M11</td><td>2023累计</td><td>23M11</td><td>2023累计</td><td>23M11</td><td>2023累计</td><td>23M11</td><td>2023累计</td></tr><tr><td rowspan=\"4\">线上</td><td>科沃斯</td><td>-23.1%</td><td>-10.3%</td><td>-25.7%</td><td>-11.8%</td><td>3.5%</td><td>1.7%</td><td>34.1%</td><td>34.8%</td><td>-8.51</td><td>-5.17</td></tr><tr><td>石头</td><td>13.5%</td><td>16.9%</td><td>15.2%</td><td>18.3%</td><td>-1.5%</td><td>-1.2%</td><td>23.5%</td><td>24.3%</td><td>3.60</td><td>2.88</td></tr><tr><td>云鲸</td><td>-18.0%</td><td>-17.3%</td><td>-17.8%</td><td>-21.4%</td><td>-0.3%</td><td>5.2%</td><td>12.3%</td><td>12.1%</td><td>-2.11</td><td>-2.99</td></tr><tr><td>追觅</td><td>81.6%</td><td>104.9%</td><td>41.9%</td><td>75.4%</td><td>28.0%</td><td>16.8%</td><td>16.5%</td><td>13.6%</td><td>7.76</td><td>6.78</td></tr></table>"
+  },
+  {
+   "bbox": [
+    117,
+    1114,
+    433,
+    1139
+   ],
+   "label": "Caption",
+   "page_num": 1,
+   "content": "资料来源：奥维云网，华金证券研究所"
+  },
+  {
+   "bbox": [
+    115,
+    1174,
+    473,
+    1198
+   ],
+   "label": "Caption",
+   "page_num": 1,
+   "content": "表 6：11 月洗地机各品牌零售端表现"
+  },
+  {
+   "bbox": [
+    101,
+    1192,
+    1442,
+    1378
+   ],
+   "label": "Table",
+   "page_num": 1,
+   "otsl": "<fcel>渠道<fcel>品牌<fcel>销额同比<lcel><fcel>销量同比<lcel><fcel>均价同比<lcel><fcel>销额市占率<lcel><fcel>市占率同比(pct)<lcel><nl><ucel><ucel><fcel>23M11<fcel>2023累计<fcel>23M11<fcel>2023累计<fcel>23M11<fcel>2023累计<fcel>23M11<fcel>2023累计<fcel>23M11<fcel>2023累计<nl><fcel>线上<fcel>添可<fcel>-18.0%<fcel>-2.2%<fcel>-9.2%<fcel>11.2%<fcel>-9.6%<fcel>-12.1%<fcel>50.4%<fcel>48.5%<fcel>-11.55<fcel>-7.81<nl><ucel><fcel>追见<fcel>26.7%<fcel>57.6%<fcel>50.0%<fcel>77.9%<fcel>-15.6%<fcel>-11.4%<fcel>18.0%<fcel>17.3%<fcel>3.68<fcel>4.82<nl><ucel><fcel>必胜<fcel>-87.8%<fcel>-68.0%<fcel>-67.9%<fcel>-43.0%<fcel>-62.0%<fcel>-43.8%<fcel>0.3%<fcel>1.2%<fcel>-2.15<fcel>-3.10<nl>",
+   "content": "<table><tr><td rowspan=\"2\">渠道</td><td rowspan=\"2\">品牌</td><td colspan=\"2\">销额同比</td><td colspan=\"2\">销量同比</td><td colspan=\"2\">均价同比</td><td colspan=\"2\">销额市占率</td><td colspan=\"2\">市占率同比(pct)</td></tr><tr><td>23M11</td><td>2023累计</td><td>23M11</td><td>2023累计</td><td>23M11</td><td>2023累计</td><td>23M11</td><td>2023累计</td><td>23M11</td><td>2023累计</td></tr><tr><td rowspan=\"3\">线上</td><td>添可</td><td>-18.0%</td><td>-2.2%</td><td>-9.2%</td><td>11.2%</td><td>-9.6%</td><td>-12.1%</td><td>50.4%</td><td>48.5%</td><td>-11.55</td><td>-7.81</td></tr><tr><td>追见</td><td>26.7%</td><td>57.6%</td><td>50.0%</td><td>77.9%</td><td>-15.6%</td><td>-11.4%</td><td>18.0%</td><td>17.3%</td><td>3.68</td><td>4.82</td></tr><tr><td>必胜</td><td>-87.8%</td><td>-68.0%</td><td>-67.9%</td><td>-43.0%</td><td>-62.0%</td><td>-43.8%</td><td>0.3%</td><td>1.2%</td><td>-2.15</td><td>-3.10</td></tr></table>"
+  },
+  {
+   "bbox": [
+    117,
+    1386,
+    436,
+    1411
+   ],
+   "label": "Caption",
+   "page_num": 1,
+   "content": "资料来源：奥维云网，华金证券研究所"
+  },
+  {
+   "bbox": [
+    115,
+    1444,
+    565,
+    1473
+   ],
+   "label": "Caption",
+   "page_num": 1,
+   "content": "表 7：11 月小厨电天猫京东各品牌零售端表现"
+  },
+  {
+   "bbox": [
+    115,
+    1473,
+    1441,
+    1694
+   ],
+   "label": "Table",
+   "page_num": 1,
+   "otsl": "<fcel>渠道<fcel>品牌<fcel>销额同比<lcel><fcel>销额市占率<lcel><fcel>市占率同比(pct)<lcel><nl><ucel><ucel><fcel>2023M11<fcel>2023累计<fcel>2023M11<fcel>2023累计<fcel>2023M11<fcel>2023累计<nl><fcel>线上<fcel>美的<fcel>-2.5%<fcel>-0.7%<fcel>13.9%<fcel>11.6%<fcel>2.50<fcel>4.25<nl><ucel><fcel>九阳<fcel>-27.8%<fcel>-24.5%<fcel>6.4%<fcel>6.3%<fcel>-0.68<fcel>1.25<nl><ucel><fcel>苏泊尔<fcel>-20.9%<fcel>-17.3%<fcel>8.8%<fcel>9.5%<fcel>-0.08<fcel>2.44<nl><ucel><fcel>小熊<fcel>-35.9%<fcel>-6.4%<fcel>3.1%<fcel>3.4%<fcel>-0.75<fcel>1.00<nl>",
+   "content": "<table><tr><td rowspan=\"2\">渠道</td><td rowspan=\"2\">品牌</td><td colspan=\"2\">销额同比</td><td colspan=\"2\">销额市占率</td><td colspan=\"2\">市占率同比(pct)</td></tr><tr><td>2023M11</td><td>2023累计</td><td>2023M11</td><td>2023累计</td><td>2023M11</td><td>2023累计</td></tr><tr><td rowspan=\"4\">线上</td><td>美的</td><td>-2.5%</td><td>-0.7%</td><td>13.9%</td><td>11.6%</td><td>2.50</td><td>4.25</td></tr><tr><td>九阳</td><td>-27.8%</td><td>-24.5%</td><td>6.4%</td><td>6.3%</td><td>-0.68</td><td>1.25</td></tr><tr><td>苏泊尔</td><td>-20.9%</td><td>-17.3%</td><td>8.8%</td><td>9.5%</td><td>-0.08</td><td>2.44</td></tr><tr><td>小熊</td><td>-35.9%</td><td>-6.4%</td><td>3.1%</td><td>3.4%</td><td>-0.75</td><td>1.00</td></tr></table>"
+  },
+  {
+   "bbox": [
+    117,
+    1696,
+    401,
+    1720
+   ],
+   "label": "Caption",
+   "page_num": 1,
+   "content": "资料来源：康视，华金证券研究所"
+  },
+  {
+   "bbox": [
+    349,
+    1837,
+    1057,
+    1882
+   ],
+   "label": "Section-header",
+   "page_num": 1,
+   "content": "## （二）出口端：11月家电出口维持较好增速"
+  },
+  {
+   "bbox": [
+    115,
+    1917,
+    346,
+    1944
+   ],
+   "label": "Page-footer",
+   "page_num": 1,
+   "content": "http://www.huajinsc.cn/"
+  },
+  {
+   "bbox": [
+    739,
+    1917,
+    803,
+    1944
+   ],
+   "label": "Page-footer",
+   "page_num": 1,
+   "content": "7 / 18"
+  },
+  {
+   "bbox": [
+    1074,
+    1923,
+    1442,
+    1950
+   ],
+   "label": "Page-footer",
+   "page_num": 1,
+   "content": "请务必阅读正文之后的免责条款部分"
+  }
+ ]
+}

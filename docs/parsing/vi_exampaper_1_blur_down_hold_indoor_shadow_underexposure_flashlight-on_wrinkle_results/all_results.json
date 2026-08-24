@@ -1,0 +1,441 @@
+[
+ {
+  "image_name": "vi_exampaper_1_blur_down_hold_indoor_shadow_underexposure_flashlight-on_wrinkle.jpg",
+  "image_path": "vi_exampaper_1_blur_down_hold_indoor_shadow_underexposure_flashlight-on_wrinkle.jpg",
+  "image_size": [
+   3072,
+   4096
+  ],
+  "layouts": [
+   {
+    "bbox": [
+     817,
+     3781,
+     2353,
+     3850
+    ],
+    "label": "Page-header",
+    "page_num": 1,
+    "content": "Đây là bản xem thử, vui lòng mua tài liệu để xem chi tiết (có lời giải)"
+   },
+   {
+    "bbox": [
+     1794,
+     3469,
+     2525,
+     3666
+    ],
+    "label": "Text",
+    "page_num": 1,
+    "content": "PHÒNG GD - ĐT ...\nTRƯỜNG TIÊU HỌC ..."
+   },
+   {
+    "bbox": [
+     495,
+     3461,
+     1382,
+     3666
+    ],
+    "label": "Text",
+    "page_num": 1,
+    "content": "ĐỀ THI CUỐI HỌC KÌ I\nLỚP 4 - NĂM HỌC ....."
+   },
+   {
+    "bbox": [
+     519,
+     3121,
+     2768,
+     3305
+    ],
+    "label": "Text",
+    "page_num": 1,
+    "content": "Lớp: 4 ... Thời gian làm bài: 40 phút\nHo và tên: 1\nĐề số: 1"
+   },
+   {
+    "bbox": [
+     1905,
+     2990,
+     2768,
+     3072
+    ],
+    "label": "Section-header",
+    "page_num": 1,
+    "content": "## I. Phần trắc nghiệm. (3 điểm)"
+   },
+   {
+    "bbox": [
+     1355,
+     2875,
+     2768,
+     2957
+    ],
+    "label": "Text",
+    "page_num": 1,
+    "content": "Khoanh tròn và chữ cái đặt trước câu trả lời đúng:"
+   },
+   {
+    "bbox": [
+     350,
+     2630,
+     2768,
+     2847
+    ],
+    "label": "Text",
+    "page_num": 1,
+    "content": "Câu 1. Số bốn mươi sáu triệu bảy trăm linh hai nghìn không trăm linh một được viết là: (0,5 điểm)"
+   },
+   {
+    "bbox": [
+     2316,
+     2523,
+     2719,
+     2593
+    ],
+    "label": "List-item",
+    "page_num": 1,
+    "content": "A. 46 702 100"
+   },
+   {
+    "bbox": [
+     1733,
+     2523,
+     2163,
+     2593
+    ],
+    "label": "List-item",
+    "page_num": 1,
+    "content": "B. 406 720 010"
+   },
+   {
+    "bbox": [
+     1192,
+     2527,
+     1591,
+     2597
+    ],
+    "label": "List-item",
+    "page_num": 1,
+    "content": "C. 46 702 001"
+   },
+   {
+    "bbox": [
+     522,
+     2540,
+     949,
+     2609
+    ],
+    "label": "List-item",
+    "page_num": 1,
+    "content": "D. 46 702 101"
+   },
+   {
+    "bbox": [
+     332,
+     2281,
+     2768,
+     2494
+    ],
+    "label": "Text",
+    "page_num": 1,
+    "content": "Câu 2. Năm 1789, vua Quang Trung đại phá quân Thanh, năm đó thuộc thế kỉ: (0,5 điểm)"
+   },
+   {
+    "bbox": [
+     2485,
+     2171,
+     2722,
+     2236
+    ],
+    "label": "List-item",
+    "page_num": 1,
+    "content": "A. XVII"
+   },
+   {
+    "bbox": [
+     1948,
+     2163,
+     2157,
+     2232
+    ],
+    "label": "List-item",
+    "page_num": 1,
+    "content": "B. IXX"
+   },
+   {
+    "bbox": [
+     1395,
+     2171,
+     1582,
+     2236
+    ],
+    "label": "List-item",
+    "page_num": 1,
+    "content": "C. XV"
+   },
+   {
+    "bbox": [
+     660,
+     2183,
+     940,
+     2249
+    ],
+    "label": "List-item",
+    "page_num": 1,
+    "content": "D. XVIII"
+   },
+   {
+    "bbox": [
+     1097,
+     2040,
+     2768,
+     2122
+    ],
+    "label": "Text",
+    "page_num": 1,
+    "content": "Câu 3. Giá trị của biểu thức 80 549 – 61 × 9 là: (0,5 điểm)"
+   },
+   {
+    "bbox": [
+     2448,
+     1929,
+     2731,
+     1999
+    ],
+    "label": "List-item",
+    "page_num": 1,
+    "content": "A. 80 000"
+   },
+   {
+    "bbox": [
+     1877,
+     1925,
+     2163,
+     1995
+    ],
+    "label": "List-item",
+    "page_num": 1,
+    "content": "B. 80 549"
+   },
+   {
+    "bbox": [
+     1296,
+     1925,
+     1576,
+     1995
+    ],
+    "label": "List-item",
+    "page_num": 1,
+    "content": "C. 80 488"
+   },
+   {
+    "bbox": [
+     596,
+     1937,
+     931,
+     2007
+    ],
+    "label": "List-item",
+    "page_num": 1,
+    "content": "D. 724 392"
+   },
+   {
+    "bbox": [
+     313,
+     1675,
+     2768,
+     1892
+    ],
+    "label": "Text",
+    "page_num": 1,
+    "content": "Câu 4. Trong số 98 292 437, giá trị của chữ số 9 gấp giá trị của chữ số 3 là: (0,5 điểm)"
+   },
+   {
+    "bbox": [
+     2243,
+     1556,
+     2713,
+     1634
+    ],
+    "label": "List-item",
+    "page_num": 1,
+    "content": "A. 3 000 000 lân"
+   },
+   {
+    "bbox": [
+     1733,
+     1556,
+     2157,
+     1634
+    ],
+    "label": "List-item",
+    "page_num": 1,
+    "content": "B. 300 000 lần"
+   },
+   {
+    "bbox": [
+     1213,
+     1561,
+     1570,
+     1634
+    ],
+    "label": "List-item",
+    "page_num": 1,
+    "content": "C. 3 000 lần"
+   },
+   {
+    "bbox": [
+     387,
+     1573,
+     919,
+     1647
+    ],
+    "label": "List-item",
+    "page_num": 1,
+    "content": "D. 30 000 000 lăn"
+   },
+   {
+    "bbox": [
+     319,
+     1303,
+     2768,
+     1520
+    ],
+    "label": "Text",
+    "page_num": 1,
+    "content": "Câu 5. Một miếng đất hình chữ nhật có chu vi 102 m. Chiều dài hơn chiều rộng 11 m. Chiều rộng của hình chữ nhật là: (0,5 điểm)"
+   },
+   {
+    "bbox": [
+     2494,
+     1180,
+     2722,
+     1253
+    ],
+    "label": "List-item",
+    "page_num": 1,
+    "content": "A. 91 m"
+   },
+   {
+    "bbox": [
+     1923,
+     1188,
+     2157,
+     1257
+    ],
+    "label": "List-item",
+    "page_num": 1,
+    "content": "B. 31 m"
+   },
+   {
+    "bbox": [
+     1336,
+     1188,
+     1570,
+     1257
+    ],
+    "label": "List-item",
+    "page_num": 1,
+    "content": "C. 20 m"
+   },
+   {
+    "bbox": [
+     664,
+     1200,
+     912,
+     1270
+    ],
+    "label": "List-item",
+    "page_num": 1,
+    "content": "D. 51 m"
+   },
+   {
+    "bbox": [
+     280,
+     795,
+     2768,
+     1159
+    ],
+    "label": "Text",
+    "page_num": 1,
+    "content": "Câu 6. Huyền có một số bi và một số túi. Biết rằng nếu Huyền bỏ vào mỗi túi 9 viên bi thì còn thừa 15 viên bi, còn nếu bỏ vào mỗi túi 12 viên bi thì vừa dù. Vậy Huyền có số bi là: (0,5 điểm)"
+   },
+   {
+    "bbox": [
+     2365,
+     676,
+     2731,
+     754
+    ],
+    "label": "List-item",
+    "page_num": 1,
+    "content": "A. 62 viên bi"
+   },
+   {
+    "bbox": [
+     1794,
+     676,
+     2169,
+     754
+    ],
+    "label": "List-item",
+    "page_num": 1,
+    "content": "B. 60 viên bi"
+   },
+   {
+    "bbox": [
+     1195,
+     672,
+     1576,
+     750
+    ],
+    "label": "List-item",
+    "page_num": 1,
+    "content": "C. 61 viên bi"
+   },
+   {
+    "bbox": [
+     488,
+     684,
+     909,
+     774
+    ],
+    "label": "List-item",
+    "page_num": 1,
+    "content": "D. 72 viên bi"
+   },
+   {
+    "bbox": [
+     2015,
+     541,
+     2768,
+     631
+    ],
+    "label": "Section-header",
+    "page_num": 1,
+    "content": "## II. Phần tự luận. (7 điểm)"
+   },
+   {
+    "bbox": [
+     1656,
+     406,
+     2768,
+     500
+    ],
+    "label": "Text",
+    "page_num": 1,
+    "content": "Bài 1. Đúng ghi Đ, sai ghi S. (1 điểm)"
+   },
+   {
+    "bbox": [
+     885,
+     0,
+     2236,
+     82
+    ],
+    "label": "Page-footer",
+    "page_num": 1,
+    "content": "Mọi thắc mắc vui lòng xin liên hệ bạtlim: 084 003 45 82"
+   }
+  ]
+ }
+]

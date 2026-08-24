@@ -1,0 +1,110 @@
+{
+ "image_name": "it_academicpaper_37_indoor_light_oblique_wrinkle_bend-out.jpeg",
+ "image_path": "it_academicpaper_37_indoor_light_oblique_wrinkle_bend-out.jpeg",
+ "image_size": [
+  1536,
+  2048
+ ],
+ "layouts": [
+  {
+   "bbox": [
+    240,
+    123,
+    1240,
+    184
+   ],
+   "label": "Page-header",
+   "page_num": 1,
+   "content": "I costrutti che incidono sulle competenze in matematica in Svizzera e in Cantone Ticino secondo l'indagine PISA 2022 / Silvia Sbaragli, Miriam Salvisberg, Michele Canducci, Alice Ambrosetti e Francesca Crofta"
+  },
+  {
+   "bbox": [
+    237,
+    264,
+    1267,
+    371
+   ],
+   "label": "Text",
+   "page_num": 1,
+   "content": "riferiti a situazioni matematiche del XXI secolo sono invece \"Codificare/programmare un computer\" o \"Lavorare con sistemi matematici informatici (ad es. fogli di calcolo, software di programmazione, calcolatrici grafiche)\"."
+  },
+  {
+   "bbox": [
+    237,
+    399,
+    760,
+    436
+   ],
+   "label": "Section-header",
+   "page_num": 1,
+   "content": "## 4.2 Risultati puntuali dell'analisi di correlazione"
+  },
+  {
+   "bbox": [
+    233,
+    434,
+    1267,
+    598
+   ],
+   "label": "Text",
+   "page_num": 1,
+   "content": "La Tabella 2 presenta i dodici costrutti (sui quarantotto analizzati) risultati significativi per la Svizzera, per il Cantone Ticino o per entrambi dal punto di vista statistico (a un livello di significatività almeno del 95%) e pratico (con $|r| \\ge 0,20$) riguardo alla correlazione tra le competenze in matematica e i costrutti. In tabella sono colorate in arancione le caselle relative ai valori risultati significativi sia dal punto di vista statistico sia dal punto di vista pratico."
+  },
+  {
+   "bbox": [
+    233,
+    639,
+    1287,
+    1599
+   ],
+   "label": "Table",
+   "page_num": 1,
+   "otsl": "<ecel><fcel>Svizzera (CH)<lcel><fcel>Cantone Ticino (TI)<lcel><nl><ucel><fcel>r<fcel>p<fcel>r<fcel>p<nl><fcel>Ansia per la matematica<fcel>-0,28<fcel>0,00<fcel>-0,14<fcel>0,02<nl><fcel>Aspettative formative<fcel>0,27<fcel>0,00<fcel>0,29<fcel>0,00<nl><fcel>Curiosità<fcel>0,15<fcel>0,00<fcel>0,22<fcel>0,00<nl><fcel>Familiarità soggettiva con i concetti matematici<fcel>0,30<fcel>0,00<fcel>0,29<fcel>0,00<nl><fcel>Frequenza del supporto o feedback per mezzo delle TIC<fcel>-0,14<fcel>0,00<fcel>-0,25<fcel>0,00<nl><fcel>Frequenza delle attività relative alle TIC in settimana<fcel>-0,35<fcel>0,00<fcel>-0,20<fcel>0,00<nl><fcel>Frequenza delle attività relative alle TIC nel weekend<fcel>-0,33<fcel>0,00<fcel>-0,07<fcel>0,25<nl><fcel>Frequenza dell'uso delle TIC nelle lezioni delle materie<fcel>0,22<fcel>0,00<fcel>0,05<fcel>0,46<nl><fcel>Percezione della qualità delle lezioni in matematica<fcel>0,18<fcel>0,00<fcel>0,27<fcel>0,00<nl><fcel>Ricerca di informazioni sul proprio futuro<fcel>-0,24<fcel>0,00<fcel>-0,18<fcel>0,00<nl><fcel>Senso di autoefficacia in matematica formale e applicata<fcel>0,54<fcel>0,00<fcel>0,39<fcel>0,00<nl><fcel>Senso di autoefficacia nel ragionamento matematico e nelle situazioni matematiche del XXI secolo<fcel>0,24<fcel>0,00<fcel>0,13<fcel>0,02<nl>",
+   "content": "<table><tr><td rowspan=\"2\"></td><td colspan=\"2\">Svizzera (CH)</td><td colspan=\"2\">Cantone Ticino (TI)</td></tr><tr><td>r</td><td>p</td><td>r</td><td>p</td></tr><tr><td>Ansia per la matematica</td><td>-0,28</td><td>0,00</td><td>-0,14</td><td>0,02</td></tr><tr><td>Aspettative formative</td><td>0,27</td><td>0,00</td><td>0,29</td><td>0,00</td></tr><tr><td>Curiosità</td><td>0,15</td><td>0,00</td><td>0,22</td><td>0,00</td></tr><tr><td>Familiarità soggettiva con i concetti matematici</td><td>0,30</td><td>0,00</td><td>0,29</td><td>0,00</td></tr><tr><td>Frequenza del supporto o feedback per mezzo delle TIC</td><td>-0,14</td><td>0,00</td><td>-0,25</td><td>0,00</td></tr><tr><td>Frequenza delle attività relative alle TIC in settimana</td><td>-0,35</td><td>0,00</td><td>-0,20</td><td>0,00</td></tr><tr><td>Frequenza delle attività relative alle TIC nel weekend</td><td>-0,33</td><td>0,00</td><td>-0,07</td><td>0,25</td></tr><tr><td>Frequenza dell&#x27;uso delle TIC nelle lezioni delle materie</td><td>0,22</td><td>0,00</td><td>0,05</td><td>0,46</td></tr><tr><td>Percezione della qualità delle lezioni in matematica</td><td>0,18</td><td>0,00</td><td>0,27</td><td>0,00</td></tr><tr><td>Ricerca di informazioni sul proprio futuro</td><td>-0,24</td><td>0,00</td><td>-0,18</td><td>0,00</td></tr><tr><td>Senso di autoefficacia in matematica formale e applicata</td><td>0,54</td><td>0,00</td><td>0,39</td><td>0,00</td></tr><tr><td>Senso di autoefficacia nel ragionamento matematico e nelle situazioni matematiche del XXI secolo</td><td>0,24</td><td>0,00</td><td>0,13</td><td>0,02</td></tr></table>"
+  },
+  {
+   "bbox": [
+    399,
+    1618,
+    1130,
+    1665
+   ],
+   "label": "Caption",
+   "page_num": 1,
+   "content": "Tabella 2. Correlazioni tra i costrutti e le competenze in matematica risultate significative da un punto di vista statistico ( $ \\theta < 0,05 $ ) e pratico ( $ |r| \\geq 0,20 $ ) in Svizzera e/o in Cantone Tiono."
+  },
+  {
+   "bbox": [
+    237,
+    1765,
+    1284,
+    1833
+   ],
+   "label": "Footnote",
+   "page_num": 1,
+   "content": ""
+  },
+  {
+   "bbox": [
+    233,
+    1917,
+    430,
+    1946
+   ],
+   "label": "Page-footer",
+   "page_num": 1,
+   "content": "DdM 2025 (17), 36 - 65"
+  },
+  {
+   "bbox": [
+    1261,
+    1923,
+    1279,
+    1939
+   ],
+   "label": "Page-footer",
+   "page_num": 1,
+   "content": "51"
+  }
+ ]
+}

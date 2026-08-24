@@ -1,0 +1,87 @@
+{
+ "image_name": "id_slide_7_outdoor_underexposure_flashlight-off_right_bend-out.jpeg",
+ "image_path": "id_slide_7_outdoor_underexposure_flashlight-off_right_bend-out.jpeg",
+ "image_size": [
+  1536,
+  2048
+ ],
+ "layouts": [
+  {
+   "bbox": [
+    129,
+    426,
+    410,
+    1634
+   ],
+   "label": "Section-header",
+   "page_num": 1,
+   "content": "## UU Nomor 35 Tahun 2014 jo.\n## UU Nomor 23 Tahun 2002 tentang\n## Perlindungan Anak"
+  },
+  {
+   "bbox": [
+    416,
+    344,
+    702,
+    1782
+   ],
+   "label": "List-item",
+   "page_num": 1,
+   "content": "Anak merupakan individu yang belum matang baik secara fisik, mental maupun sosial. Karena kondisinya yang rentan tergantung dan berkembang maka perlu dilindungi"
+  },
+  {
+   "bbox": [
+    717,
+    430,
+    788,
+    1788
+   ],
+   "label": "List-item",
+   "page_num": 1,
+   "content": "Upaya perlindungan khusus terhadap anak, yakni :"
+  },
+  {
+   "bbox": [
+    806,
+    668,
+    877,
+    1745
+   ],
+   "label": "List-item",
+   "page_num": 1,
+   "content": "1. Anak yang berada dalam situasi darurat"
+  },
+  {
+   "bbox": [
+    889,
+    489,
+    960,
+    1745
+   ],
+   "label": "List-item",
+   "page_num": 1,
+   "content": "2. Anak yang mengalami masalah dengan hukum"
+  },
+  {
+   "bbox": [
+    975,
+    655,
+    1046,
+    1745
+   ],
+   "label": "List-item",
+   "page_num": 1,
+   "content": "3. Anak yang mengalami situasi eksploitasi"
+  },
+  {
+   "bbox": [
+    1061,
+    311,
+    1421,
+    1788
+   ],
+   "label": "List-item",
+   "page_num": 1,
+   "content": "Telah ditindaklanjuti Provinsi Jawa Timur dengan Perda No. 9 Tahun 2005 tentang Penyelenggaraan Perlindungan Perempuan dan Anak Korban Kekerasan dan Perda No. 14 tentang Sistem Penyelenggaraan Perlindungan Anak"
+  }
+ ]
+}

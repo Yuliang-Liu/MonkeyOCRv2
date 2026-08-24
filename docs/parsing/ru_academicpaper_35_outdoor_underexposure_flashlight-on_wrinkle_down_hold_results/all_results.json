@@ -1,0 +1,211 @@
+[
+ {
+  "image_name": "ru_academicpaper_35_outdoor_underexposure_flashlight-on_wrinkle_down_hold.jpg",
+  "image_path": "ru_academicpaper_35_outdoor_underexposure_flashlight-on_wrinkle_down_hold.jpg",
+  "image_size": [
+   3024,
+   4032
+  ],
+  "layouts": [
+   {
+    "bbox": [
+     2289,
+     3677,
+     2407,
+     3794
+    ],
+    "label": "Picture",
+    "page_num": 1,
+    "content": "![image](../images/ru_academicpaper_35_outdoor_underexposure_flashlight-on_wrinkle_down_hold_sub0.jpg)"
+   },
+   {
+    "bbox": [
+     1110,
+     3685,
+     1947,
+     3794
+    ],
+    "label": "Page-header",
+    "page_num": 1,
+    "content": "Металлургия и материаловедение\nMetallurgy and Materials Science"
+   },
+   {
+    "bbox": [
+     2008,
+     3568,
+     2516,
+     3621
+    ],
+    "label": "Text",
+    "page_num": 1,
+    "content": "- подготовка кадров."
+   },
+   {
+    "bbox": [
+     1609,
+     3246,
+     2694,
+     3564
+    ],
+    "label": "Text",
+    "page_num": 1,
+    "content": "Как видно из вышеизложенного, одним из основных стратегических направлений развития литейного производства на современном этапе - это развитие моделирования и компьютерных технологий."
+   },
+   {
+    "bbox": [
+     1615,
+     3121,
+     2694,
+     3246
+    ],
+    "label": "Text",
+    "page_num": 1,
+    "content": "Развитие моделирования и компьютерных технологий предполагает:"
+   },
+   {
+    "bbox": [
+     1615,
+     2935,
+     2694,
+     3121
+    ],
+    "label": "Text",
+    "page_num": 1,
+    "content": "- моделирование формирования отливки в форме – система синтеза по всем элементам процесса [11];"
+   },
+   {
+    "bbox": [
+     1618,
+     2806,
+     2694,
+     2927
+    ],
+    "label": "Text",
+    "page_num": 1,
+    "content": "– автоматизированное проектирование литейной технологии;"
+   },
+   {
+    "bbox": [
+     1618,
+     2476,
+     2697,
+     2802
+    ],
+    "label": "Text",
+    "page_num": 1,
+    "content": "– проектирование литейной технологии и оснастки в CAD-системе с последующим её изготовлением на станках с числовым программным управлением (ЧПУ);"
+   },
+   {
+    "bbox": [
+     1621,
+     2351,
+     2697,
+     2472
+    ],
+    "label": "Text",
+    "page_num": 1,
+    "content": "– разработка системы быстрого прототипирования;"
+   },
+   {
+    "bbox": [
+     1621,
+     2218,
+     2697,
+     2343
+    ],
+    "label": "Text",
+    "page_num": 1,
+    "content": "– компьютерное управление технологическим оборудованием [12, 13]."
+   },
+   {
+    "bbox": [
+     1621,
+     1895,
+     2697,
+     2218
+    ],
+    "label": "Text",
+    "page_num": 1,
+    "content": "Сегодня в мире насчитывается большое количество программ для моделирования литейных процессов. В мировой практике основное распространение получили программы, представленные в таблице"
+   },
+   {
+    "bbox": [
+     1373,
+     3568,
+     1445,
+     3621
+    ],
+    "label": "Text",
+    "page_num": 1,
+    "content": "que"
+   },
+   {
+    "bbox": [
+     366,
+     3262,
+     1452,
+     3564
+    ],
+    "label": "Text",
+    "page_num": 1,
+    "content": "К сожалению, российским специалистам известны лишь такие программы, как Magmasoft, PROCast, SolidCast, а также две отечественные разработки – «Полигон» и LVMFlow."
+   },
+   {
+    "bbox": [
+     366,
+     2548,
+     1458,
+     3254
+    ],
+    "label": "Text",
+    "page_num": 1,
+    "content": "Основные проблемы при выборе конкретной программы для моделирования технологических процессов состоят в отсутствии достоверной информации о возможностях самой программы, принципах работы с ней, а также в отсутствии специалистов на предприятиях России. Существенным фактором для отечественных предприятий при выборе программы для моделирования литейных процессов остается ее стоимость [14]."
+   },
+   {
+    "bbox": [
+     351,
+     1899,
+     1458,
+     2544
+    ],
+    "label": "Text",
+    "page_num": 1,
+    "content": "Программы для моделирования литейных процессов, используемые сегодня в России, в основном различаются степенью полноты факторов, учитываемых при моделировании, и, соответственно, стоимостью. Второе существенное различие связано с методами получения и решения уравнений: уравнения тепломассопереноса могут быть записаны в дифференциальном или интегральном виде."
+   },
+   {
+    "bbox": [
+     723,
+     1653,
+     2359,
+     1839
+    ],
+    "label": "Caption",
+    "page_num": 1,
+    "content": "Программы для моделирования литейных процессов и страны создатели\nPrograms for casting process simulation and the country of origin"
+   },
+   {
+    "bbox": [
+     378,
+     508,
+     2706,
+     1653
+    ],
+    "label": "Table",
+    "page_num": 1,
+    "otsl": "<fcel>Страна -разработчик<fcel>Программа<fcel>Страна-разработчик<fcel>Программа<nl><fcel>Германия<fcel>Magmasoft<fcel>США<fcel>Flow3D<nl><fcel>Германия<fcel>WinCast<fcel>США<fcel>PowerCast<nl><fcel>Франция<fcel>PROCast<fcel>США<fcel>SolidCast (AFSolid)<nl><fcel>Франция<fcel>QuikCast<fcel>США<fcel>CAPCast<nl><fcel>Франция<fcel>PAM-Cast<fcel>США<fcel>RAPID/CAST<nl><fcel>Франция<fcel>CalcoSoft<fcel>Корея<fcel>AnyCasting<nl><fcel>Испания<fcel>Vulcan<fcel>Финляндия<fcel>CastCAE<nl><fcel>Япония<fcel>JSCAST<fcel>Россия, г. Ижевск<fcel>LVMFlow<nl><fcel>Россия, г. Санкт-Петербург<fcel>Poligon («Полигон»)<fcel>Россия, г. Москва<fcel>FlowVision<nl><fcel>Англия<fcel>Mavis-Flow<fcel>Индия<fcel>AutoCast<nl><fcel>Китай<fcel>InteCast<fcel>Австралия<fcel>Castflow, Castherm<nl>",
+    "content": "<table><tr><td>Страна -разработчик</td><td>Программа</td><td>Страна-разработчик</td><td>Программа</td></tr><tr><td>Германия</td><td>Magmasoft</td><td>США</td><td>Flow3D</td></tr><tr><td>Германия</td><td>WinCast</td><td>США</td><td>PowerCast</td></tr><tr><td>Франция</td><td>PROCast</td><td>США</td><td>SolidCast (AFSolid)</td></tr><tr><td>Франция</td><td>QuikCast</td><td>США</td><td>CAPCast</td></tr><tr><td>Франция</td><td>PAM-Cast</td><td>США</td><td>RAPID/CAST</td></tr><tr><td>Франция</td><td>CalcoSoft</td><td>Корея</td><td>AnyCasting</td></tr><tr><td>Испания</td><td>Vulcan</td><td>Финляндия</td><td>CastCAE</td></tr><tr><td>Япония</td><td>JSCAST</td><td>Россия, г. Ижевск</td><td>LVMFlow</td></tr><tr><td>Россия, г. Санкт-Петербург</td><td>Poligon («Полигон»)</td><td>Россия, г. Москва</td><td>FlowVision</td></tr><tr><td>Англия</td><td>Mavis-Flow</td><td>Индия</td><td>AutoCast</td></tr><tr><td>Китай</td><td>InteCast</td><td>Австралия</td><td>Castflow, Castherm</td></tr></table>"
+   },
+   {
+    "bbox": [
+     378,
+     351,
+     2716,
+     411
+    ],
+    "label": "Page-footer",
+    "page_num": 1,
+    "content": "ISSN 1814-3520 ВЕСТНИК ИРГТУ Том 22, № 11 2018 / PROCEEDINGS of ISTU Vol. 22, No. 11 2018 211"
+   }
+  ]
+ }
+]

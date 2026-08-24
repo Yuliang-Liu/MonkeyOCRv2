@@ -1,0 +1,133 @@
+[
+ {
+  "image_name": "fr_academicpaper_16_indoor_light_bend-in_crease_oblique.jpg",
+  "image_path": "fr_academicpaper_16_indoor_light_bend-in_crease_oblique.jpg",
+  "image_size": [
+   1279,
+   2275
+  ],
+  "layouts": [
+   {
+    "bbox": [
+     303,
+     334,
+     421,
+     362
+    ],
+    "label": "Section-header",
+    "page_num": 1,
+    "content": "## D. POISSON"
+   },
+   {
+    "bbox": [
+     366,
+     425,
+     978,
+     491
+    ],
+    "label": "Section-header",
+    "page_num": 1,
+    "content": "## 2. LE TABLEAU DANS UN TRAITEMENT DE TEXTE : UN OUTIL LOGICIEL DE LA BARRE DE MENUS"
+   },
+   {
+    "bbox": [
+     304,
+     487,
+     999,
+     612
+    ],
+    "label": "Text",
+    "page_num": 1,
+    "content": "Paradoxalement dans un traitement de texte comme WORD, le tableau n'apparaît pas comme une structure de données indicées, mais comme un des menus proposés dans la barre de menus, au même titre que : Fichier, Edition, Affichage, Insertion, Format, Outils et Fenêtre."
+   },
+   {
+    "bbox": [
+     306,
+     610,
+     999,
+     739
+    ],
+    "label": "Text",
+    "page_num": 1,
+    "content": "Le menu Tableau offre un outil logiciel de mise en forme permettant de disposer des colonnes de données numériques et textuelles dans un document sans utiliser les tabulations, et de présenter du texte en paragraphe côte à côte¹ ou d'arranger du texte face à des images."
+   },
+   {
+    "bbox": [
+     308,
+     735,
+     999,
+     1192
+    ],
+    "label": "Text",
+    "page_num": 1,
+    "content": "A l'écran un tableau est une composition de lignes et de colonnes marquées sur demande par un quadrillage en pointillés. Ce quadrillage est destiné à indiquer à l'écran les limites du tableau, il n'apparaît pas à l'impression. Chaque case du tableau est une cellule. Notons donc que dans un premier temps, contrairement au tableau en informatique, les cellules ne sont pas indicées, on se déplace dans le tableau à l'aide de la souris ou en utilisant la touche de tabulation et les flèches de direction (droite, gauche, haut, bas) pour passer d'une cellule à une cellule voisine. La représentation graphique usuelle avec des traits délimitant des cases, n'est qu'optionnelle et dépend du menu FORMAT (sous menu Bordure et trame) et les cellules s'étendent verticalement automatiquement pour s'adapter à la quantité de texte tapé. Le tableau Word n'est donc pas un ensemble de cases de dimensions prédéfinies dans lesquelles on écrit, mais quelque chose de beaucoup plus dynamique. Je renvoie au guide de l'utilisateur «WORD» pour une exploration complète du concept de tableau dans WORD. La plupart des tableaux proposés en Sciences de l'éducation plus loin, sont produits par le menu Tableau de Word."
+   },
+   {
+    "bbox": [
+     363,
+     1244,
+     949,
+     1308
+    ],
+    "label": "Section-header",
+    "page_num": 1,
+    "content": "## 3. LE TABLEUR : UN PROGICIEL ORIENTE VERS LE TRAITEMENT AUTOMATIQUE DE TABLEAUX DE DONNEES"
+   },
+   {
+    "bbox": [
+     299,
+     1308,
+     991,
+     1461
+    ],
+    "label": "Text",
+    "page_num": 1,
+    "content": "Même si les tableaux dans Word permettent certains calculs, leur vocation n'est pas de traiter les données, mais seulement de les présenter. Les tableurs comme EXCEL sont, eux, des progiciels directement dédiés à la manipulation de tableaux de calculs. Notons au passage que ces logiciels peuvent s'échanger des données."
+   },
+   {
+    "bbox": [
+     297,
+     1458,
+     993,
+     1618
+    ],
+    "label": "Text",
+    "page_num": 1,
+    "content": "La majeure partie des travaux dans EXCEL se fera dans une feuille de calcul qui est une grille composée de lignes et de colonnes. Chaque cellule correspond à l'intersection d'une ligne et d'une colonne et possède une adresse unique, appelée référence. Par exemple, la cellule située à l'intersection de la colonne B et de la ligne 5 est la cellule B5, les références de cellules servent à écrire les formules."
+   },
+   {
+    "bbox": [
+     297,
+     1615,
+     993,
+     1684
+    ],
+    "label": "Text",
+    "page_num": 1,
+    "content": "Nous retrouvons donc le concept de variable indicée mais ici les indices des lignes sont des nombres et les indices des colonnes des lettres. Contrairement aux"
+   },
+   {
+    "bbox": [
+     299,
+     1729,
+     991,
+     1786
+    ],
+    "label": "Footnote",
+    "page_num": 1,
+    "content": ""
+   },
+   {
+    "bbox": [
+     301,
+     1861,
+     324,
+     1886
+    ],
+    "label": "Page-footer",
+    "page_num": 1,
+    "content": "84"
+   }
+  ]
+ }
+]

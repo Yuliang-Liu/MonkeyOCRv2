@@ -1,0 +1,78 @@
+[
+ {
+  "image_name": "es_financialreport_25_outdoor_underexposure_flashlight-off_crease_top_bend-in.jpg",
+  "image_path": "es_financialreport_25_outdoor_underexposure_flashlight-off_crease_top_bend-in.jpg",
+  "image_size": [
+   960,
+   1708
+  ],
+  "layouts": [
+   {
+    "bbox": [
+     109,
+     157,
+     258,
+     249
+    ],
+    "label": "Page-header",
+    "page_num": 1,
+    "content": "CHIV\nRasumen del lélume anual\nde la CHIV 2019\n10 de junio de 2020"
+   },
+   {
+    "bbox": [
+     300,
+     147,
+     862,
+     709
+    ],
+    "label": "Text",
+    "page_num": 1,
+    "content": "cerca de un 12 % en un contexto de volatilidad muy baja, extendiéndose los incrementos a la mayor parte de los sectores con excepción del financiero, que se vio perjudicado por el entorno de tipos de interés más reducidos. Este entorno de tipos se veía intensificado a mediados de año por las decisiones del Banco Central Europeo (BCE) de retomar el tono expansivo de la política monetaria, debido a la ralentización económica de la zona y al escaso avance de la inflación. La negociación de los valores se situó en niveles menores que en años anteriores y siguió incrementándose la importancia de la contratación en centros de negociación exteriores. La actividad en los mercados primarios fue escasa y no se produjo ninguna salida a bolsa relevante, una tendencia que también se observa en otras plazas y a la que la CNMV presta especial atención, al ser deseable una mayor financiación de nuestras empresas vía los mercados. En los mercados de renta fija las emisiones brutas de deuda fueron algo superiores a los 400.000 millones de euros en 2019, algo menos que en 2018, una tendencia que se explica por la disminución de las emisiones de las Administraciones públicas y de las entidades financieras, las primeras por encontrarse en un proceso de consolidación presupuestaria y las segundas por disponer de otras fuentes de financiación atractivas. Por su parte, las compañías no financieras incrementaron el volumen de sus emisiones de deuda aprovechando las buenas condiciones de los mercados en un marco en el que las emisiones efectuadas en mercados exteriores siguieron teniendo un gran protagonismo."
+   },
+   {
+    "bbox": [
+     299,
+     719,
+     862,
+     1004
+    ],
+    "label": "Text",
+    "page_num": 1,
+    "content": "La industria de la inversión colectiva registró una nueva expansión en 2019, con la que reanudaba un proceso de expansión que había iniciado en 2013 y que se vio interrumpido transitoriamente en 2018. El patrimonio de los fondos de inversión creció casi un 8% en el conjunto del año, fundamentalmente por los rendimientos de las carteras. Los inversores suscribieron participaciones de estos instrumentos, pero con menos intensidad que en ejercicios previos, sin duda por las incertidumbres presentes en los mercados. Además, continuó la expansión del patrimonio y de la importancia relativa de las instituciones de inversión colectiva comercializadas en España, que a finales del año pasado suponían más de un tercio del total de las instituciones de este tipo comercializadas en nuestro país."
+   },
+   {
+    "bbox": [
+     298,
+     1027,
+     859,
+     1419
+    ],
+    "label": "Text",
+    "page_num": 1,
+    "content": "En el ámbito de la prestación de servicios de inversión, las entidades de crédito continuaron siendo las principales proveedoras de estos servicios y percibiendo la mayor parte de los ingresos por estas actividades. En particular, la proporción de ingresos que reciben las entidades vinculadas con los que podrían denominarse bancos comerciales (distinguidolas de las no bancarias y de las entidades de crédito especializadas en servicios relacionados con valores) se mantiene relativamente estable cerca del 70 % desde hace varios años. En el caso concreto de las sociedades y agencias de valores —sobre las que la CNMV realiza una supervisión integral que incluye solvencia y normas de conducta— cabe señalar que 2019 fue un ejercicio complejo, a la vista de la disminución de los beneficios del sector. Estas entidades están modificando progresivamente su modelo de negocio debido a varios factores, entre los que destaca el aumento de la competencia ejercida por las entidades de crédito, potenciando la relevancia de segmentos como el asesoramiento en materia de inversión, que hace años tenía escasa importancia."
+   },
+   {
+    "bbox": [
+     298,
+     1442,
+     860,
+     1611
+    ],
+    "label": "Text",
+    "page_num": 1,
+    "content": "En el ámbito de la supervisión de los mercados, las herramientas a disposición de la CNMV funcionaron con normalidad en 2019: en lo que respecta a la comunicación de operaciones (transaction reporting) se recibieron más de 165 millones de registros, un 50 % más que en 2018, de operaciones ejecutadas sobre instrumentos financieros. El aumento se debió a los ficheros especiales (REQ) para la comunicación de operaciones omitidas a corregidas y, también, a la decisión de algunas enti-"
+   },
+   {
+    "bbox": [
+     103,
+     1570,
+     127,
+     1592
+    ],
+    "label": "Page-footer",
+    "page_num": 1,
+    "content": "22"
+   }
+  ]
+ }
+]

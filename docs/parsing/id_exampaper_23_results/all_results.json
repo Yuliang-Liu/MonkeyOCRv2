@@ -1,0 +1,232 @@
+[
+ {
+  "image_name": "id_exampaper_23.jpg",
+  "image_path": "id_exampaper_23.jpg",
+  "image_size": [
+   1700,
+   2200
+  ],
+  "layouts": [
+   {
+    "bbox": [
+     196,
+     101,
+     945,
+     139
+    ],
+    "label": "Page-header",
+    "page_num": 1,
+    "content": "CONTOH SOAL UJIAN CHARTERED ACCOUNTANT 2025"
+   },
+   {
+    "bbox": [
+     196,
+     165,
+     716,
+     198
+    ],
+    "label": "Page-header",
+    "page_num": 1,
+    "content": "AKUNTANSI MANAJEMEN LANJUTAN"
+   },
+   {
+    "bbox": [
+     1170,
+     101,
+     1498,
+     229
+    ],
+    "label": "Page-header",
+    "page_num": 1,
+    "content": "CA\nChartered Accountant\nINDONESIA\nIKATAN AKUNTAN INDONESIA"
+   },
+   {
+    "bbox": [
+     196,
+     284,
+     1499,
+     385
+    ],
+    "label": "List-item",
+    "page_num": 1,
+    "content": "18. Pernyataan berikut tidak tepat tentang faktor-faktor yang mempengaruhi keputusan penetapan harga:"
+   },
+   {
+    "bbox": [
+     274,
+     407,
+     1416,
+     447
+    ],
+    "label": "List-item",
+    "page_num": 1,
+    "content": "A. Kenaikan harga produk pengganti mempengaruhi keputusan penetapan harga"
+   },
+   {
+    "bbox": [
+     274,
+     466,
+     1499,
+     568
+    ],
+    "label": "List-item",
+    "page_num": 1,
+    "content": "B. Fluktuasi nilai tukar antara mata uang berbagai negara tidak mempengaruhi keputusan penetapan harga"
+   },
+   {
+    "bbox": [
+     274,
+     590,
+     1499,
+     691
+    ],
+    "label": "List-item",
+    "page_num": 1,
+    "content": "C. Informasi tentang teknologi pesaing sangat berguna untuk keputusan penetapan harga"
+   },
+   {
+    "bbox": [
+     274,
+     711,
+     1499,
+     812
+    ],
+    "label": "List-item",
+    "page_num": 1,
+    "content": "D. Informasi tentang pesaing di pasar yang sempurna memengaruhi keputusan penetapan harga"
+   },
+   {
+    "bbox": [
+     196,
+     893,
+     1499,
+     1115
+    ],
+    "label": "List-item",
+    "page_num": 1,
+    "content": "19. Mengelompokkan biaya yang terkait dengan pelanggan ke dalam kumpulan biaya yang berbeda berdasarkan kelas penggerak biaya yang berbeda atau tingkat kesulitan yang berbeda dalam menentukan hubungan sebab-akibat (atau manfaat yang diterima) adalah pengertian dari:"
+   },
+   {
+    "bbox": [
+     274,
+     1137,
+     772,
+     1177
+    ],
+    "label": "List-item",
+    "page_num": 1,
+    "content": "A. Customer-profitability analysis"
+   },
+   {
+    "bbox": [
+     274,
+     1199,
+     619,
+     1236
+    ],
+    "label": "List-item",
+    "page_num": 1,
+    "content": "B. Customer revenues"
+   },
+   {
+    "bbox": [
+     274,
+     1258,
+     694,
+     1298
+    ],
+    "label": "List-item",
+    "page_num": 1,
+    "content": "C. Customer cost hierarchy"
+   },
+   {
+    "bbox": [
+     274,
+     1320,
+     588,
+     1360
+    ],
+    "label": "List-item",
+    "page_num": 1,
+    "content": "D. Price discounting"
+   },
+   {
+    "bbox": [
+     196,
+     1441,
+     1499,
+     1542
+    ],
+    "label": "List-item",
+    "page_num": 1,
+    "content": "20. Dalam menentukan harga jual produknya, suatu perusahaan berusaha keras melakukan berbagai pertimbangan."
+   },
+   {
+    "bbox": [
+     274,
+     1564,
+     1411,
+     1606
+    ],
+    "label": "Text",
+    "page_num": 1,
+    "content": "Berikut ini bukan salah satu pertimbangan utama saat melakukan penetapan harga:"
+   },
+   {
+    "bbox": [
+     274,
+     1628,
+     576,
+     1665
+    ],
+    "label": "List-item",
+    "page_num": 1,
+    "content": "A. Pasokan produk"
+   },
+   {
+    "bbox": [
+     274,
+     1685,
+     661,
+     1727
+    ],
+    "label": "List-item",
+    "page_num": 1,
+    "content": "B. Biaya produksi produk"
+   },
+   {
+    "bbox": [
+     274,
+     1749,
+     768,
+     1786
+    ],
+    "label": "List-item",
+    "page_num": 1,
+    "content": "C. Melihat harga pesaing mereka"
+   },
+   {
+    "bbox": [
+     274,
+     1808,
+     763,
+     1848
+    ],
+    "label": "List-item",
+    "page_num": 1,
+    "content": "D. Preferensi pelanggan mereka"
+   },
+   {
+    "bbox": [
+     1272,
+     2026,
+     1499,
+     2059
+    ],
+    "label": "Page-footer",
+    "page_num": 1,
+    "content": "Halaman 7 dari 17"
+   }
+  ]
+ }
+]
