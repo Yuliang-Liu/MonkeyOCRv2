@@ -1,0 +1,21 @@
+datasets:
+  multi_scale_formula_rec_train:
+    data_type: images
+    build_info:
+      images: ./data/UniMER1M/images
+      annotation: ./data/UniMER1M/train.txt
+
+    vis_processor:
+      train:
+        name: "formula_image_multi_scale_train"
+        all_scales:
+          - [ 96, 336 ]
+          - [ 128, 448 ]
+          - [ 192, 672 ]
+          - [ 288, 1008 ]
+          - [ 384, 1344 ]
+
+    text_processor:
+      train:
+        name: "blip_caption"
+        max_words: 256
