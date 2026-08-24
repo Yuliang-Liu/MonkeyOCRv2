@@ -1,16 +1,3 @@
----
-license: other
-license_name: adelaidet-non-commercial
-license_link: https://github.com/ymy-k/DPText-DETR/blob/main/LICENSE
-tags:
-- ocr
-- text-detection
-- scene-text-detection
-- dptext-detr
-- detectron2
-- monkeyocr v2
----
-
 # MonkeyOCRv2 Detection (DPText-DETR)
 
 This repository provides the DPText-DETR text detection experiments from the
