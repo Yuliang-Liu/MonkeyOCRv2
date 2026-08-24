@@ -1,0 +1,30 @@
+_BASE_: "../Base.yaml"
+
+DATASETS:
+  TRAIN: ("art_poly_train_rotate_pos",)
+  TEST: ("art_test",)
+
+MODEL:
+  WEIGHTS: "ckpts/R-50.pkl"
+  TRANSFORMER:
+    INFERENCE_TH_TEST: 0.375
+
+INPUT:
+  MIN_SIZE_TEST: 1200
+  MAX_SIZE_TEST: 1900
+
+SOLVER:
+  IMS_PER_BATCH: 8
+  BASE_LR: 1e-4
+  LR_BACKBONE: 1e-5
+  WARMUP_ITERS: 0
+  STEPS: (160000,)
+  MAX_ITER: 200000
+  CHECKPOINT_PERIOD: 50000
+
+TEST:
+  EVAL_PERIOD: 200000
+
+SEED: 168
+
+OUTPUT_DIR: "output/r_50_poly/art/direct_rotate"

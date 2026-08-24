@@ -1,0 +1,34 @@
+_BASE_: "../Base_mkv2vitae.yaml"
+
+DATASETS:
+  TRAIN: ("ctw1500_poly_train_rotate_pos",)
+  TEST: ("ctw1500_poly_test",)
+
+MODEL:
+  WEIGHTS: ""
+  TRANSFORMER:
+    INFERENCE_TH_TEST: 0.375
+
+SOLVER:
+  IMS_PER_BATCH: 8
+  OPTIMIZER: "ADAMW"
+  BASE_LR: 1e-4
+  LR_BACKBONE: 1e-4
+  LR_DECAY_RATE: 1.0
+  VIT_NUM_LAYERS: 14
+  WEIGHT_DECAY: 1e-4
+  ZERO_WEIGHT_DECAY_NAMES: ["bias", "norm", "rms", "post_trunk_norm", "rotary_pos_emb"]
+  WARMUP_ITERS: 0
+  STEPS: (160000,)
+  MAX_ITER: 200000
+  CHECKPOINT_PERIOD: 50000
+
+INPUT:
+  SMART_RESIZE:
+    ENABLED: False
+  MIN_SIZE_TEST: 1000 
+  MAX_SIZE_TEST: 1280
+TEST:
+  EVAL_PERIOD: 5000
+
+OUTPUT_DIR: "output/mkv2vitae_align/ctw1500/direct_rotate"

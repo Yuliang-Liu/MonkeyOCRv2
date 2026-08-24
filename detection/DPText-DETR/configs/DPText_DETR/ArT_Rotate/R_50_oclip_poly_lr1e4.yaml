@@ -1,0 +1,45 @@
+_BASE_: "../Base.yaml"
+
+DATASETS:
+  TRAIN: ("art_poly_train_rotate_pos",)
+  TEST: ("art_test",)
+
+# ---------------------------------------------------------------------------
+# Backbone: mmocr.models.common.backbones.clip_resnet.CLIPResNet, the exact
+# implementation used in
+# https://github.com/open-mmlab/mmocr/blob/main/configs/textdet/dbnet/dbnet_resnet50-oclip_1200e_totaltext_2gpu.py
+# Initialised from the oCLIP R-50 weights
+# (https://download.openmmlab.com/mmocr/backbone/resnet50-oclip-7ba0c533.pth).
+# The wrapper itself takes care of BGR->RGB and CLIP-style normalisation
+# (the data pipeline keeps the standard R-50 PIXEL_MEAN / PIXEL_STD values
+# from Base.yaml, which are ignored because the backbone reports
+# ``uses_external_processor = True``).
+# LR_BACKBONE is set to 1e-4 (== BASE_LR) to match the baseline setting
+# where the backbone shares the same lr as the rest of the model.
+# ---------------------------------------------------------------------------
+MODEL:
+  WEIGHTS: "ckpts/resnet50-oclip-7ba0c533.pth"
+  BACKBONE:
+    NAME: "build_mmocr_clip_resnet_backbone"
+  TRANSFORMER:
+    INFERENCE_TH_TEST: 0.35
+
+INPUT:
+  MIN_SIZE_TEST: 1200
+  MAX_SIZE_TEST: 1900
+
+SOLVER:
+  IMS_PER_BATCH: 8
+  BASE_LR: 1e-4
+  LR_BACKBONE: 1e-4
+  WARMUP_ITERS: 0
+  STEPS: (160000,)
+  MAX_ITER: 200000
+  CHECKPOINT_PERIOD: 50000
+
+TEST:
+  EVAL_PERIOD: 200000
+
+SEED: 5201314
+
+OUTPUT_DIR: "output/r_50_poly/art/direct_rotate_oclip_lr1e4"

@@ -371,6 +371,10 @@ You can fine-tune MonkeyOCRv2-Und with your own data, please reffer to the [trai
 
 Please refer to [`./recognition`](./recognition) for training and evaluation instructions.
 
+### Scene Text Detection
+
+Please refer to [`./detection`](./detection) for training and evaluation instructions.
+
 ### Overlapping Text Segmentation 
 
 Please refer to [MOT](https://github.com/willpat1213/MOTS) for training and evaluation instructions.

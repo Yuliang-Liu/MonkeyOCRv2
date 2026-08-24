@@ -1,0 +1,31 @@
+_BASE_: "Base.yaml"
+
+MODEL:
+  BACKBONE:
+    NAME: "build_monkeyocr_v2_vitae_backbone"
+  MONKEY_V2_VITAE:
+    MODEL_DIR: "pretrained/monkeyocrv2_as"
+    WEIGHTS: "pretrained/monkeyocrv2_as/model.safetensors"
+    OUT_FEATURES: ["res3", "res4", "res5"]
+    OUT_CHANNELS: 0
+    USE_BF16: True
+    TRUST_REMOTE_CODE: True
+    FREEZE: False
+    GRADIENT_CHECKPOINTING: False
+  TRANSFORMER:
+    NUM_FEATURE_LEVELS: 4
+
+SOLVER:
+  LR_BACKBONE_NAMES: ["backbone.0.backbone.vitae"]
+
+INPUT:
+  INTERP: "bicubic"
+  MIN_SIZE_TRAIN: (480, 512, 544, 576, 608, 640, 672, 704, 736, 768, 800, 832,)
+  MAX_SIZE_TRAIN: 1600
+  MIN_SIZE_TEST: 1000
+  MAX_SIZE_TEST: 1800
+  SMART_RESIZE:
+    ENABLED: True
+    FACTOR: 32
+    MIN_PIXELS: 4096
+    MAX_PIXELS: 1802240

@@ -1,0 +1,71 @@
+MODEL:
+  META_ARCHITECTURE: "TransformerPureDetector"
+  MASK_ON: False
+  PIXEL_MEAN: [123.675, 116.280, 103.530]
+  PIXEL_STD: [58.395, 57.120, 57.375]
+  BACKBONE:
+    NAME: "build_resnet_backbone"
+  RESNETS:
+    DEPTH: 50
+    STRIDE_IN_1X1: False
+    OUT_FEATURES: ["res3", "res4", "res5"]
+  MMOCR_CLIP_RESNET:
+    DEPTH: 50
+    STRIDES: [1, 2, 2, 2]
+    DEEP_STEM: True
+    AVG_DOWN: True
+    FROZEN_STAGES: -1
+    NORM_TYPE: "BN"
+    NORM_EVAL: False
+    WITH_CP: False
+    ZERO_INIT_LAST_BN: True
+    USE_BF16: False
+    OUT_FEATURES: ["res3", "res4", "res5"]
+    INIT_CFG: null
+  TRANSFORMER:
+    ENABLED: True
+    NUM_FEATURE_LEVELS: 4
+    ENC_LAYERS: 6
+    DEC_LAYERS: 6
+    DIM_FEEDFORWARD: 1024
+    HIDDEN_DIM: 256
+    DROPOUT: 0.1
+    NHEADS: 8
+    NUM_QUERIES: 100
+    ENC_N_POINTS: 4
+    DEC_N_POINTS: 4
+    USE_POLYGON: True
+    NUM_CTRL_POINTS: 16
+    EPQM: True
+    EFSA: True
+    INFERENCE_TH_TEST: 0.4
+
+SOLVER:
+  WEIGHT_DECAY: 1e-4
+  OPTIMIZER: "ADAMW"
+  LR_BACKBONE_NAMES: ['backbone.0']
+  LR_LINEAR_PROJ_NAMES: ['reference_points', 'sampling_offsets']
+  LR_LINEAR_PROJ_MULT: 0.1
+  CLIP_GRADIENTS:
+    ENABLED: True
+    CLIP_TYPE: "full_model"
+    CLIP_VALUE: 0.1
+    NORM_TYPE: 2.0
+
+INPUT:
+  MIN_SIZE_TRAIN: (480, 512, 544, 576, 608, 640, 672, 704, 736, 768, 800, 832,)
+  MAX_SIZE_TRAIN: 1600
+  MIN_SIZE_TEST: 1000
+  MAX_SIZE_TEST: 1800
+  CROP:
+    ENABLED: True
+    CROP_INSTANCE: False
+    SIZE: [0.1, 0.1]
+  FORMAT: "RGB"
+
+TEST:
+  DET_ONLY: True  # evaluate only detection metrics
+
+SEED: 42
+DATALOADER:
+  NUM_WORKERS: 16
