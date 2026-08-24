@@ -1,0 +1,16 @@
+MonkeyOCRv2 Detection (DPText-DETR add-on)
+
+This product includes software developed by the DPText-DETR authors
+(https://github.com/ymy-k/DPText-DETR) and by the AdelaiDet authors
+(https://github.com/aim-uofa/AdelaiDet). The DPText-DETR detector, the
+ResNet-50 baseline, the Total-Text / CTW1500 / ICDAR19-ArT / Inverse-Text
+data preparation and the evaluation tooling originate from those projects and
+are released for non-commercial use only; see LICENSE.
+
+The oCLIP ResNet-50 backbone wrapper builds on the CLIPResNet implementation
+from MMOCR (https://github.com/open-mmlab/mmocr, Apache License 2.0) and uses
+the oCLIP pretrained checkpoint from oCLIP
+(https://github.com/bytedance/oclip).
+
+The MonkeyOCRv2-ViTAE backbone wraps the MonkeyOCRv2-AS visual encoder
+(https://huggingface.co/zenosai/MonkeyOCRv2-AS, Apache License 2.0).

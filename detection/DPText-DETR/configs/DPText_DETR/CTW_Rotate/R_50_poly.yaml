@@ -1,0 +1,28 @@
+_BASE_: "../Base.yaml"
+
+DATASETS:
+  TRAIN: ("ctw1500_poly_train_rotate_pos",)
+  TEST: ("ctw1500_poly_test",)
+
+MODEL:
+  WEIGHTS: "ckpts/R-50.pkl"
+  TRANSFORMER:
+    INFERENCE_TH_TEST: 0.495
+
+INPUT:
+  MIN_SIZE_TEST: 1000 
+  MAX_SIZE_TEST: 1280
+
+SOLVER:
+  IMS_PER_BATCH: 8
+  BASE_LR: 1e-4
+  LR_BACKBONE: 1e-5
+  WARMUP_ITERS: 0
+  STEPS: (160000,)
+  MAX_ITER: 200000
+  CHECKPOINT_PERIOD: 50000
+
+TEST:
+  EVAL_PERIOD: 5000
+
+OUTPUT_DIR: "output/r_50_poly/ctw1500/direct_rotate"

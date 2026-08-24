@@ -1,0 +1,24 @@
+_BASE_: "../Base.yaml"
+
+DATASETS:
+  TRAIN: ("totaltext_poly_train_rotate_pos",)
+  TEST: ("totaltext_poly_test",)  # or "inversetext_test", "totaltext_poly_test_rotate"
+
+MODEL:
+  WEIGHTS: "ckpts/R-50.pkl"
+  TRANSFORMER:
+    INFERENCE_TH_TEST: 0.37
+
+SOLVER:
+  IMS_PER_BATCH: 8
+  BASE_LR: 1e-4
+  LR_BACKBONE: 1e-5
+  WARMUP_ITERS: 0
+  STEPS: (160000,)
+  MAX_ITER: 200000
+  CHECKPOINT_PERIOD: 50000
+
+TEST:
+  EVAL_PERIOD: 2500
+
+OUTPUT_DIR: "output/r_50_poly/totaltext/direct_rotate"
