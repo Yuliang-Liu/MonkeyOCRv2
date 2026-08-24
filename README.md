@@ -3,6 +3,7 @@
 <b>MonkeyOCRv2: A Visual-Text Foundation Model for Document AI</b>
 </h2>
 
+[![Project Page](https://img.shields.io/badge/Project_Page-MonkeyOCRv2-3a6ea5.svg?logo=githubpages)](https://yuliang-liu.github.io/MonkeyOCRv2/)
 [![arXiv](https://img.shields.io/badge/Arxiv-MonkeyOCRv2-b31b1b.svg?logo=arXiv)](https://arxiv.org/abs/2607.11562)
 [![MonkeyOCRv2](https://img.shields.io/badge/MonkeyOCRv2-black.svg?logo=Huggingface)](https://huggingface.co/collections/zenosai/monkeyocrv2)
 [![MonkeyDocv2](https://img.shields.io/badge/MonkeyDoc_v2-blue.svg?logo=ModelScope)](https://modelscope.cn/datasets/zenosai/MonkeyDocv2)
