@@ -1,0 +1,34 @@
+name: Python syntax
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  syntax:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Parse every Python file with ast
+        run: |
+          python - <<'PY'
+          import ast
+          import sys
+          from pathlib import Path
+
+          paths = sorted(p for p in Path(".").rglob("*.py") if ".git" not in p.parts)
+          errors = []
+          for path in paths:
+              try:
+                  ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
+              except SyntaxError as exc:
+                  errors.append(f"{path}:{exc.lineno}: {type(exc).__name__}: {exc.msg}")
+          print(f"Parsed {len(paths)} Python files; {len(errors)} syntax error(s)")
+          for line in errors:
+              print(line, file=sys.stderr)
+          sys.exit(1 if errors else 0)
+          PY
