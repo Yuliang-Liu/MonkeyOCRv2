@@ -338,7 +338,7 @@ python fastapi/main.py -h
 You can access the API documentation at http://localhost:8000/docs to explore available endpoints.
 
 #### 5. Fine-tune
-You can fine-tune MonkeyOCRv2-Parsing with your own data, please reffer to the [training part](parsing/train/README.md).
+You can fine-tune MonkeyOCRv2-Parsing on your own data. Please refer to the [training instructions](parsing/train/README.md).
 
 ### Document Understanding
 #### 1. Install
@@ -366,7 +366,7 @@ python infer.py \
 python infer.py -h
 ```
 #### 4. Fine-tune
-You can fine-tune MonkeyOCRv2-Und with your own data, please reffer to the [training part](understanding/train/README.md).
+You can fine-tune MonkeyOCRv2-Parsing on your own data. Please refer to the [training instructions](understanding/train/README.md).
 
 ### Scene Text Recognition
 
