@@ -1972,6 +1972,7 @@ class BackendConfig:
     preprocess_batch_size: int = 32
     skip_preprocess: bool = False
 
+    def __post_init__(self):
         if not str(self.server_url or "").strip():
             raise ValueError(
                 "server_url is required (set --server-url or MOCR2_SERVER_URL); local model inference is not supported. "
