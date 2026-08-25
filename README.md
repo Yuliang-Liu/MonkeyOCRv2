@@ -221,6 +221,7 @@ After processing and compression, downloading the dataset currently requires app
 </table>
 
 ## Quick Start
+Install requirements differ by subproject. See the [version compatibility matrix](docs/version_matrix.md).
 ### Vision Encoder
 #### 1. Install
 Install transformers and flash attention:
