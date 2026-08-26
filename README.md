@@ -221,6 +221,7 @@ After processing and compression, downloading the dataset currently requires app
 </table>
 
 ## Quick Start
+What `trust_remote_code=True` loads is listed in [`docs/trust_remote_code.md`](docs/trust_remote_code.md).
 ### Vision Encoder
 #### 1. Install
 Install transformers and flash attention:
