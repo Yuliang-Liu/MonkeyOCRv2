@@ -81,6 +81,7 @@
     }
     .news-item { padding: 0.35rem 0; }
     .news-item .date { font-weight: 700; color: var(--accent); font-family: monospace; }
+    .news-item code.date { background: transparent; padding: 0; font-size: inherit; }
     .table-container { overflow-x: auto; }
     .table { font-size: 0.9rem; }
     .table th { white-space: nowrap; background: #f4f7fb; text-align: center; }
@@ -267,7 +268,9 @@
 <section class="section pt-4 pb-4" style="background:#fafbfd;">
   <div class="container" style="max-width: 900px;">
     <h2 class="title is-3 section-title has-text-centered">News</h2>
-    <div class="content mt-4">
+    <div id="news-list" class="content mt-4" aria-live="polite">
+      <!-- Checked-in fallback; replaced by the README section when it loads. -->
+      <div class="news-item"><span class="date">2026.08.22</span> 🖥️ Supported running <a href="https://github.com/Yuliang-Liu/MonkeyOCRv2#document-parsing">MonkeyOCRv2-Parsing</a> on CPU. See the <a href="https://github.com/Yuliang-Liu/MonkeyOCRv2/tree/main/docs/cpu_support.md">CPU support instructions</a>.</div>
       <div class="news-item"><span class="date">2026.08.17</span> ⚡ Released training and evaluation instructions for <a href="https://github.com/Yuliang-Liu/MonkeyOCRv2/tree/main/recognition" target="_blank">Recognition</a> and <a href="https://github.com/willpat1213/MOTS" target="_blank">Overlapping Text Segmentation</a>.</div>
       <div class="news-item"><span class="date">2026.07.24</span> ⚡ Released <a href="https://huggingface.co/zenosai/MonkeyOCRv2-B-Parsing-DFlash" target="_blank">MonkeyOCRv2-B-Parsing-DFlash</a>, enabling vLLM serving with DFlash for up to 2× faster inference.</div>
       <div class="news-item"><span class="date">2026.07.22</span> 🏆 MonkeyOCRv2-B-Parsing ranks <strong>#1 among open-source models</strong> on the official <a href="https://huggingface.co/spaces/Delores-Lin/MDPBench-leaderboard" target="_blank">MDPBench Leaderboard</a> (83.3 overall across 17 languages).</div>
@@ -1641,6 +1644,62 @@ Mọi thắc mắc vui lòng xin liên hệ bạtlim: 084 003 45 82
     });
   });
   exShow(0);
+
+  // ===== Keep News synchronized with README.md =====
+  (function loadNewsFromReadme() {
+    var newsEl = document.getElementById('news-list');
+    var rawReadmeUrl = 'https://raw.githubusercontent.com/Yuliang-Liu/MonkeyOCRv2/main/README.md';
+    var repoBaseUrl = 'https://github.com/Yuliang-Liu/MonkeyOCRv2/blob/main/';
+
+    fetch(rawReadmeUrl, { cache: 'no-cache' })
+      .then(function (response) {
+        if (!response.ok) throw new Error('README request failed (' + response.status + ')');
+        return response.text();
+      })
+      .then(function (readme) {
+        var heading = readme.match(/^##[ \t]+News[ \t]*\r?\n/im);
+        if (!heading) throw new Error('README has no ## News section');
+        var section = readme.slice(heading.index + heading[0].length);
+        var nextHeading = section.search(/^##[ \t]+/m);
+        if (nextHeading !== -1) section = section.slice(0, nextHeading);
+        if (!section.trim()) throw new Error('README News section is empty');
+
+        // marked converts Markdown (lists, headings, links, emphasis, etc.) to HTML.
+        // Convert top-level list items to this page's compact .news-item structure.
+        var rendered = document.createElement('div');
+        rendered.innerHTML = marked.parse(section.trim(), { baseUrl: repoBaseUrl });
+        var output = document.createDocumentFragment();
+        Array.from(rendered.childNodes).forEach(function (node) {
+          if (node.nodeType === 1 && (node.tagName === 'UL' || node.tagName === 'OL')) {
+            Array.from(node.children).forEach(function (item) {
+              var newsItem = document.createElement('div');
+              newsItem.className = 'news-item';
+              while (item.firstChild) newsItem.appendChild(item.firstChild);
+              var date = newsItem.querySelector('code');
+              if (date) {
+                var dateSpan = document.createElement('span');
+                dateSpan.className = 'date';
+                dateSpan.textContent = date.textContent;
+                date.replaceWith(dateSpan);
+              }
+              output.appendChild(newsItem);
+            });
+          } else {
+            output.appendChild(node);
+          }
+        });
+        newsEl.replaceChildren(output);
+        newsEl.querySelectorAll('a').forEach(function (link) {
+          link.target = '_blank';
+          link.rel = 'noopener noreferrer';
+          try { link.href = new URL(link.getAttribute('href'), repoBaseUrl).href; } catch (_) {}
+        });
+      })
+      .catch(function (error) {
+        // The checked-in HTML remains visible if GitHub is unavailable.
+        console.warn('Could not load News from README:', error);
+      });
+  }());
 
   // BibTeX copy
   function copyBibtex() {

@@ -3,7 +3,7 @@
 <b>MonkeyOCRv2: A Visual-Text Foundation Model for Document AI</b>
 </h2>
 
-[![Project Page](https://img.shields.io/badge/Project_Page-MonkeyOCRv2-3a6ea5.svg?logo=githubpages)](https://yuliang-liu.github.io/MonkeyOCRv2/)
+[![Project Page](https://img.shields.io/badge/Page-MonkeyOCRv2-3a6ea5.svg?logo=github)](https://yuliang-liu.github.io/MonkeyOCRv2/)
 [![arXiv](https://img.shields.io/badge/Arxiv-MonkeyOCRv2-b31b1b.svg?logo=arXiv)](https://arxiv.org/abs/2607.11562)
 [![MonkeyOCRv2](https://img.shields.io/badge/MonkeyOCRv2-black.svg?logo=Huggingface)](https://huggingface.co/collections/zenosai/monkeyocrv2)
 [![MonkeyDocv2](https://img.shields.io/badge/MonkeyDoc_v2-blue.svg?logo=ModelScope)](https://modelscope.cn/datasets/zenosai/MonkeyDocv2)
@@ -15,7 +15,7 @@
 </div>
 
 ## News
-* `2026.08.22` 🖥️ We now support running [MonkeyOCRv2-Parsing](#document-parsing) on CPU. See the [CPU support instructions](docs/cpu_support.md).
+* `2026.08.22` 🖥️ We now support running [MonkeyOCRv2-Parsing](https://github.com/Yuliang-Liu/MonkeyOCRv2#document-parsing) on CPU. See the [CPU support instructions](https://github.com/Yuliang-Liu/MonkeyOCRv2/blob/main/docs/cpu_support.md).
 * `2026.08.17` ⚡ Releasing training and evaluation instructions for [Recognition](https://github.com/Yuliang-Liu/MonkeyOCRv2#scene-text-recognition), [Detection](https://github.com/Yuliang-Liu/MonkeyOCRv2#scene-text-detection), [Overlapping Text Segmentation](https://github.com/Yuliang-Liu/MonkeyOCRv2#overlapping-text-segmentation) and [Formula](https://github.com/Yuliang-Liu/MonkeyOCRv2#formula-recognition).
 * `2026.07.24` ⚡ We released [MonkeyOCRv2-B-Parsing-DFlash](https://huggingface.co/zenosai/MonkeyOCRv2-B-Parsing-DFlash), enabling vLLM serving with DFlash for up to 2× faster inference.
 * `2026.07.22` 🏆 MonkeyOCRv2-B-Parsing ranks #1 among evaluated open-source models on the official [MDPBench Leaderboard](https://huggingface.co/spaces/Delores-Lin/MDPBench-leaderboard), achieving 83.3 overall across 17 languages, including digital-born and photographed documents.
