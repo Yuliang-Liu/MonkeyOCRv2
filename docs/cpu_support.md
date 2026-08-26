@@ -2,6 +2,8 @@
 
 This guide covers running MonkeyOCRv2 Document Parsing on **CPU**. If you are looking for support for GPU, please refer to [MonkeyOCRv2](https://github.com/Yuliang-Liu/MonkeyOCR/blob/main/README.md).
 
+CPU inference loads only the parsing checkpoint passed to `-m` / `--model-path` (`MonkeyOCRv2-B-Parsing` or `MonkeyOCRv2-S-Parsing`). Do **not** download `MonkeyOCRv2-B-Parsing-DFlash` for this guide: that draft model is used only for GPU vLLM speculative decoding. See [Document Parsing](../README.md#document-parsing) if you need DFlash. Subproject version pins are summarized in the [version compatibility matrix](version_matrix.md).
+
 ---
 
 ## Setup MonkeyOCRv2-Parsing(Windows)
@@ -35,16 +37,12 @@ From ModelScope (faster in China):
 ```bash
 .\.venv\Scripts\python.exe -m pip install modelscope
 python download_model.py -t modelscope -n MonkeyOCRv2-B-Parsing # or MonkeyOCRv2-S-Parsing
-# use DFlash for faster inference, support MonkeyOCRv2-B-Parsing only for now
-python download_model.py -t modelscope -n MonkeyOCRv2-B-Parsing-DFlash
 ```
 
 Or from HuggingFace:
 
 ```bash
 python download_model.py -n MonkeyOCRv2-B-Parsing # or MonkeyOCRv2-S-Parsing
-# use DFlash for faster inference, support MonkeyOCRv2-B-Parsing only for now
-python download_model.py -n MonkeyOCRv2-B-Parsing-DFlash
 ```
 
 ---
@@ -114,16 +112,12 @@ From ModelScope (faster in China):
 ```bash
 pip install modelscope
 python download_model.py -t modelscope -n MonkeyOCRv2-B-Parsing # or MonkeyOCRv2-S-Parsing
-# use DFlash for faster inference, support MonkeyOCRv2-B-Parsing only for now
-python download_model.py -t modelscope -n MonkeyOCRv2-B-Parsing-DFlash
 ```
 
 Or from HuggingFace:
 
 ```bash
 python download_model.py -n MonkeyOCRv2-B-Parsing # or MonkeyOCRv2-S-Parsing
-# use DFlash for faster inference, support MonkeyOCRv2-B-Parsing only for now
-python download_model.py -n MonkeyOCRv2-B-Parsing-DFlash
 ```
 
 ---
