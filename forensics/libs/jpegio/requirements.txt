@@ -1,0 +1,3 @@
+Cython
+numpy
+# brew install jpeg
