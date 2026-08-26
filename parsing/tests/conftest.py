@@ -1,11 +1,9 @@
-"""Import parsing.core_runner without GPU, vLLM, or model weights.
+"""Import ``core_runner`` without loading the model preprocessor or weights.
 
-``core_runner.py`` is a CLI/FastAPI/Gradio module, not a package.  Tests add
-``parsing/`` to ``sys.path`` the same way ``parse.py`` does.
-
-Top-level imports include ``torch`` and ``modeling.modeling_preprocessor``.
-The latter pulls cv2/numpy/torch.  Neither is used by the pure functions under
-test; they are stubbed so this suite runs on CPU with Pillow + requests only.
+The tests exercise pure helpers only.  ``core_runner`` imports the preprocessor
+at module import time, so replace that one module before the test modules load.
+Keep a real torch installation intact when one is present; in a minimal CI
+environment, provide only the small ``torch.cuda`` surface used by cleanup code.
 """
 
 from __future__ import annotations
@@ -17,34 +15,46 @@ from pathlib import Path
 PARSING_DIR = Path(__file__).resolve().parents[1]
 
 
-def _install_import_stubs() -> None:
-    if "torch" not in sys.modules:
-        torch = types.ModuleType("torch")
+def _install_torch_stub_if_missing() -> None:
+    try:
+        __import__("torch")
+        return
+    except ModuleNotFoundError:
+        pass
 
-        class _Cuda:
-            @staticmethod
-            def is_available() -> bool:
-                return False
+    torch = types.ModuleType("torch")
 
-            @staticmethod
-            def empty_cache() -> None:
-                return None
+    class _Cuda:
+        @staticmethod
+        def is_available() -> bool:
+            return False
 
-        torch.cuda = _Cuda()
-        sys.modules["torch"] = torch
+        @staticmethod
+        def empty_cache() -> None:
+            return None
 
-    if "modeling.modeling_preprocessor" not in sys.modules:
-        modeling = sys.modules.setdefault("modeling", types.ModuleType("modeling"))
-        preprocessor = types.ModuleType("modeling.modeling_preprocessor")
-
-        class Preprocessor:  # noqa: D401 - import stub
-            """Placeholder matching the name imported by core_runner."""
-
-        preprocessor.Preprocessor = Preprocessor
-        modeling.modeling_preprocessor = preprocessor
-        sys.modules["modeling.modeling_preprocessor"] = preprocessor
+    torch.cuda = _Cuda()
+    sys.modules["torch"] = torch
 
 
-_install_import_stubs()
+def _install_preprocessor_stub() -> None:
+    modeling = sys.modules.get("modeling")
+    if modeling is None:
+        modeling = types.ModuleType("modeling")
+        modeling.__path__ = [str(PARSING_DIR / "modeling")]
+        sys.modules["modeling"] = modeling
+
+    preprocessor = types.ModuleType("modeling.modeling_preprocessor")
+
+    class Preprocessor:  # noqa: D401 - import stub
+        """Placeholder matching the name imported by core_runner."""
+
+    preprocessor.Preprocessor = Preprocessor
+    modeling.modeling_preprocessor = preprocessor
+    sys.modules["modeling.modeling_preprocessor"] = preprocessor
+
+
+_install_torch_stub_if_missing()
+_install_preprocessor_stub()
 if str(PARSING_DIR) not in sys.path:
     sys.path.insert(0, str(PARSING_DIR))
