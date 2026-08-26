@@ -278,7 +278,14 @@ async def parse_document(
     files: Optional[List[UploadFile]] = File(default=None), file: Optional[UploadFile] = File(default=None),
     start_page_id: int = Form(0), end_page_id: int = Form(99999),
 ):
-    """Parse one or more documents and return one ZIP archive."""
+    """Parse documents and return one ZIP archive.
+
+    Multipart inputs: ``files`` (repeatable) or ``file`` (single file), plus
+    optional ``start_page_id`` (inclusive, zero-based) and ``end_page_id``
+    (exclusive). The response is the ZIP binary itself with Content-Type
+    ``application/zip``; each document directory contains Markdown, native
+    ``jsons``/``all_results.json`` artifacts, and generated images.
+    """
     uploads = [*(files or [])]
     if file is not None:
         uploads.append(file)
