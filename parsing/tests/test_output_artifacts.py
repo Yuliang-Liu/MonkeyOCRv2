@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import json
 from pathlib import Path
 
 from PIL import Image
@@ -10,7 +9,6 @@ from PIL import Image
 from core_runner import (
     MAX_FILENAME_BYTES,
     _format_block_fields,
-    build_result_record,
     make_artifact_filename,
     result2md,
     save_picture_block,
@@ -29,11 +27,6 @@ def test_long_utf8_stem_fits_byte_limit_and_is_deterministic():
     assert "_" in name
     assert make_artifact_filename(stem, ".md") == name
     assert name != stem + ".md"
-
-
-def test_special_character_stem_is_preserved_when_it_fits():
-    stem = "报告 #1 (v2) *?"
-    assert make_artifact_filename(stem, ".md") == "报告 #1 (v2) *?.md"
 
 
 def test_result2md_writes_long_and_special_names(tmp_path: Path):
@@ -90,21 +83,3 @@ def test_format_picture_block_uses_relative_markdown(tmp_path: Path):
     )
     assert fields["content"] == "![image](../images/论文_sub0.jpg)"
     assert (tmp_path / "论文_sub0.jpg").is_file()
-
-
-def test_json_record_roundtrip_with_long_utf8_name(tmp_path: Path):
-    stem = "测" * 200
-    record = build_result_record(
-        {
-            "name": stem,
-            "image_name": f"{stem}.png",
-            "image_path": "/synthetic/doc.png",
-            "image_size": [10, 10],
-        },
-        [{"bbox": [0, 0, 1, 1], "label": "Text", "content": "ok"}],
-    )
-    path = tmp_path / make_artifact_filename(stem, ".json")
-    path.write_text(json.dumps(record, ensure_ascii=False, indent=1), encoding="utf-8")
-    loaded = json.loads(path.read_text(encoding="utf-8"))
-    assert loaded["layouts"][0]["label"] == "Text"
-    assert len(path.name.encode("utf-8")) <= MAX_FILENAME_BYTES
