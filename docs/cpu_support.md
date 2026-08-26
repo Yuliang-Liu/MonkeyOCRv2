@@ -1,8 +1,8 @@
 # MonkeyOCRv2-Parsing on CPU 
 
-This guide covers running MonkeyOCRv2 Document Parsing on **CPU**. If you are looking for support for GPU, please refer to [MonkeyOCRv2](https://github.com/Yuliang-Liu/MonkeyOCR/blob/main/README.md).
+This guide covers running MonkeyOCRv2 Document Parsing on **CPU**. For GPU inference, see [Document Parsing](../README.md#document-parsing) in this repository.
 
-CPU inference loads only the parsing checkpoint passed to `-m` / `--model-path` (`MonkeyOCRv2-B-Parsing` or `MonkeyOCRv2-S-Parsing`). Do **not** download `MonkeyOCRv2-B-Parsing-DFlash` for this guide: that draft model is used only for GPU vLLM speculative decoding. See [Document Parsing](../README.md#document-parsing) if you need DFlash. Subproject version pins are summarized in the [version compatibility matrix](version_matrix.md).
+CPU inference loads only the parsing checkpoint passed to `-m` / `--model-path` (`MonkeyOCRv2-B-Parsing` or `MonkeyOCRv2-S-Parsing`). Do **not** download `MonkeyOCRv2-B-Parsing-DFlash` for this guide: that draft model is used only for GPU vLLM speculative decoding.
 
 ---
 
