@@ -26,16 +26,14 @@ def vllm_version_tuple() -> tuple[int, ...]:
     return tuple(int(part) for part in numbers.group(1).split("."))
 
 
-def import_model_registration() -> str:
-    installed = vllm_version_tuple()
-    if installed < (0, 12):
-        from modeling import modeling_monkeyocrv2_vllm_011  # noqa: F401
-
-        return "modeling.modeling_monkeyocrv2_vllm_011"
-
+installed = vllm_version_tuple()
+if installed == (0, 11):
+    from modeling import modeling_monkeyocrv2_vllm_011  # noqa: F401
+elif installed >= (0, 25):
     from modeling import modeling_monkeyocrv2_vllm  # noqa: F401
+else:
+    raise SystemExit(f"Unsupported vLLM version: {installed}. MonkeyOCRv2 requires vLLM >= 0.25 for DFlash acceleration or ==0.11 for legacy support.")
 
-    return "modeling.modeling_monkeyocrv2_vllm"
 
 
 def ensure_model_path(model_path: str):
@@ -177,8 +175,7 @@ def main():
             args.extra_args = args.extra_args[1:]
         argv.extend(args.extra_args)
 
-    registration_module = import_model_registration()
-    print(f"Imported {registration_module} for vLLM model registration.")
+    print("Imported modeling_monkeyocrv2_vllm for vLLM model registration.")
     print("Running:", " ".join(argv))
     sys.argv = argv
     vllm_main()
