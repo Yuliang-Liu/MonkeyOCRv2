@@ -1,0 +1,6 @@
+MonkeyOCRv2 Detection (MMOCR add-on)
+This product includes software developed by the MMOCR Authors
+(https://github.com/open-mmlab/mmocr) and is released under the Apache
+License, Version 2.0. The DBNet and PSENet baselines, the oCLIP ResNet-50
+backbone checkpoint, and the training/evaluation tooling originate from
+MMOCR and oCLIP (https://github.com/alkan25/oclip).
