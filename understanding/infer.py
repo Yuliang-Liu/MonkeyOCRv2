@@ -1,5 +1,10 @@
 import argparse
 import random
+import base64
+import json
+import urllib.request
+from io import BytesIO
+from pathlib import Path
 
 
 def parse_args():
@@ -9,9 +14,14 @@ def parse_args():
     parser.add_argument(
         "--model-path",
         "-m",
-        default="../model_weight/MonkeyOCRv2-B-Und",
+        default="../model_weight/MonkeyOCRv2-S-Und",
         help="Path to the local MonkeyOCRv2 understanding model directory.",
     )
+    parser.add_argument(
+        "--server-url", "-s", default=None,
+        help="vLLM OpenAI-compatible server URL. If omitted, run locally with Transformers.",
+    )
+    parser.add_argument("--served-model-name", default="MonkeyOCRv2")
     parser.add_argument(
         "--image-path",
         "-i",
@@ -72,11 +82,41 @@ def parse_args():
 def main():
     args = parse_args()
 
+    random.seed(args.seed)
+
+    if args.server_url:
+        image = args.image_path
+        if not (image.startswith("http://") or image.startswith("https://") or image.startswith("data:")):
+            # The OpenAI-compatible API has no max-pixels parameter. Resize
+            # locally so vLLM receives the same image scale as Transformers.
+            from PIL import Image, ImageOps
+
+            pil_image = ImageOps.exif_transpose(Image.open(image)).convert("RGB")
+            if args.max_pixels and pil_image.width * pil_image.height > args.max_pixels:
+                scale = (args.max_pixels / float(pil_image.width * pil_image.height)) ** 0.5
+                size = (max(1, int(pil_image.width * scale)), max(1, int(pil_image.height * scale)))
+                pil_image = pil_image.resize(size, Image.Resampling.LANCZOS)
+            buffer = BytesIO()
+            pil_image.save(buffer, format="JPEG", quality=95)
+            image = "data:image/jpeg;base64," + base64.b64encode(buffer.getvalue()).decode()
+        url = args.server_url.rstrip("/")
+        if not url.endswith("/v1"):
+            url += "/v1"
+        payload = {"model": args.served_model_name, "messages": [{"role": "user", "content": [
+            {"type": "image_url", "image_url": {"url": image}},
+            {"type": "text", "text": args.question},
+        ]}], "max_tokens": args.max_new_tokens, "temperature": max(args.temperature, 0)}
+        request = urllib.request.Request(url + "/chat/completions", data=json.dumps(payload).encode(),
+                                         headers={"Content-Type": "application/json"}, method="POST")
+        with urllib.request.urlopen(request) as response:
+            result = json.load(response)
+        print(result["choices"][0]["message"]["content"])
+        return
+
     import torch
     from qwen_vl_utils import process_vision_info
     from transformers import AutoModelForCausalLM, AutoProcessor
 
-    random.seed(args.seed)
     torch.manual_seed(args.seed)
     if torch.cuda.is_available():
         torch.cuda.manual_seed_all(args.seed)
