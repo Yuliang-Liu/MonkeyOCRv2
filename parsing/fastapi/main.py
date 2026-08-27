@@ -453,8 +453,12 @@ async def run_document_pipeline(file: UploadFile, *, start_page_id: int = 0, end
             images[relative] = f"data:{mime};base64,{encoded}"
         artifacts = {}
         for artifact in run_dir.rglob("*"):
-            if artifact.is_file() and artifact != input_path and artifact != pipeline_input:
-                artifacts[artifact.relative_to(run_dir).as_posix()] = artifact.read_bytes()
+            if not artifact.is_file() or artifact in markdowns or artifact == input_path or artifact == pipeline_input:
+                continue
+            mime, _ = mimetypes.guess_type(artifact.name)
+            if mime and mime.startswith("image/"):
+                continue
+            artifacts[artifact.relative_to(run_dir).as_posix()] = artifact.read_bytes()
         return markdown, images, artifacts
 
     try:
