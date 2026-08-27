@@ -269,7 +269,7 @@ To use DFlash for faster inference, **vLLM 0.25.1** is required, which depends o
 If your system does not support CUDA 12.9, you can instead install **vLLM 0.11.2** (without DFlash support) by running:
 
 ```bash
-uv pip install vllm==0.11.2 --torch-backend=auto -i https://pypi.tuna.tsinghua.edu.cn/simple requests
+uv pip install vllm==0.11.2 --torch-backend=auto -i https://pypi.tuna.tsinghua.edu.cn/simple
 ```
 
 Inference will still work normally, but DFlash acceleration will not be available.
@@ -343,7 +343,14 @@ You can fine-tune MonkeyOCRv2-Parsing on your own data. Please refer to the [tra
 
 ### Document Understanding
 #### 1. Install
-See install part of MonkeyOCRv2 vision encoder.
+You can use vLLM for faster inference. Install vLLM following its [official guide](https://docs.vllm.ai/en/v0.11.2/getting_started/installation/gpu/):
+```bash
+conda create -n MonkeyOCRv2Und python=3.11
+conda activate MonkeyOCRv2Und
+pip install uv
+uv pip install vllm==0.11.2 --torch-backend=auto -i https://pypi.tuna.tsinghua.edu.cn/simple
+```
+or follow the install part of MonkeyOCRv2 vision encoder if you use transformers for aligned performance with the paper.
 
 #### 2. Download Model Weights
 Download our model from Huggingface.
@@ -357,14 +364,29 @@ pip install modelscope
 python download_model.py -t modelscope -n MonkeyOCRv2-B-Und # or MonkeyOCRv2-S-Und
 ```
 #### 3. Inference
+##### 3.1 Infer with vLLM
+Start vLLM service first:
 ```bash
 cd understanding
+python serve.py -m ../model_weight/MonkeyOCRv2-B-Und  -p 8889
+```
+Run inference scripts:
+```bash
 python infer.py \
-    -m ../model_weight/MonkeyOCRv2-B-Und \
+    -s http://127.0.0.1:8889 \
     -i ../images_test/vqa.png \
     -q 'What is the serving size?'
 # Show help messages
 python infer.py -h
+```
+##### 3.2 Infer with transformers
+You can infer with transformers for aligned performance with the paper:
+```bash
+python infer.py \
+    -m ../model_weight/MonkeyOCRv2-B-Und \
+    --attn-implementation flash_attention_2 \
+    -i ../images_test/vqa.png \
+    -q 'What is the serving size?'
 ```
 #### 4. Fine-tune
 You can fine-tune MonkeyOCRv2-Und on your own data. Please refer to the [training instructions](understanding/train/README.md).
