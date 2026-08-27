@@ -304,18 +304,17 @@ async def parse_document(
         # RAGFlow keys results by the original filename.  Ensure duplicate
         # names in a batch do not silently overwrite one another.
         name = upload.filename or "upload"
-        if name in result:
-            stem, suffix = Path(name).stem, Path(name).suffix
+        stem = Path(name).stem or "upload"
+        if stem in result:
             index = 2
-            while f"{stem}_{index}{suffix}" in result:
+            while f"{stem}_{index}" in result:
                 index += 1
-            name = f"{stem}_{index}{suffix}"
-        result[name] = (markdown, images, artifacts)
+            stem = f"{stem}_{index}"
+        result[stem] = (markdown, images, artifacts)
 
     archive = io.BytesIO()
     with zipfile.ZipFile(archive, "w", compression=zipfile.ZIP_DEFLATED) as zf:
-        for name, (markdown, images, artifacts) in result.items():
-            stem = Path(name).stem
+        for stem, (markdown, images, artifacts) in result.items():
             root = f"{stem}/"
             zf.writestr(root + f"{stem}.md", markdown)
             for rel, content in artifacts.items():
