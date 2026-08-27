@@ -1,1 +1,1 @@
-"""Model definitions and preprocessing modules for MonkeyOCRv2 parsing."""
+"""Model definitions and preprocessing modules for MonkeyOCRv2 understanding."""
