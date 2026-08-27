@@ -4,7 +4,6 @@ import base64
 import json
 import urllib.request
 from io import BytesIO
-from pathlib import Path
 
 
 def parse_args():
