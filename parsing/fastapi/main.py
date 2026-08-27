@@ -290,7 +290,7 @@ async def parse_document(
     if file is not None:
         uploads.append(file)
     if not uploads:
-        raise HTTPException(status_code=422, detail="At least one file is required (field: files).")
+        raise HTTPException(status_code=422, detail="At least one file is required (field: file or files).")
     if start_page_id < 0 or end_page_id <= start_page_id:
         raise HTTPException(status_code=422, detail="Invalid page range: end_page_id must be greater than start_page_id.")
 
