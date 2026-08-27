@@ -463,6 +463,8 @@ async def run_document_pipeline(file: UploadFile, *, start_page_id: int = 0, end
         return await loop.run_in_executor(executor, run_parse)
     except HTTPException:
         raise
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
     except Exception as exc:
         raise_internal_error("parse", exc)
 
