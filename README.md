@@ -43,7 +43,7 @@ encoder = AutoModel.from_pretrained(
 See the Vision Encoder [Quick Start](https://github.com/Yuliang-Liu/MonkeyOCRv2#vision-encoder) for installation and feature-extraction examples. If you adapt MonkeyOCRv2 to a new task or domain, feel free to open an issue or pull request and share the results.
 
 ## MonkeyDoc v2
-MonkeyDoc v2 is currently the largest document image pre-training image-text pair dataset, comprising 113 million document images across 17 languages. The open-sourcing of MonkeyDoc v2 is still underway. So far, we have released 52 million synthetic samples and 41 million real-world samples. You can download the full datset as follows:
+MonkeyDoc v2 is currently the largest document image pre-training image-text pair dataset, comprising 113 million document images across 17 languages. The open-sourcing of MonkeyDoc v2 is still underway. So far, we have released 52 million synthetic samples and 41 million real-world samples. You can download the full dataset as follows:
 ```bash
 pip install modelscope
 modelscope download --dataset zenosai/MonkeyDocv2 --local_dir ./MonkeyDocv2
@@ -337,6 +337,8 @@ python fastapi/main.py -s http://127.0.0.1:8888 -p 8000
 python fastapi/main.py -h
 ```
 You can access the API documentation at http://localhost:8000/docs to explore available endpoints.
+
+`POST /parse` accepts a single multipart field `file` or a repeatable `files` field and returns `application/zip` (`monkeyocrv2_results.zip`), with one directory per document containing Markdown. See `/docs` for the remaining endpoints and request fields.
 
 #### 5. Fine-tune
 You can fine-tune MonkeyOCRv2-Parsing on your own data. Please refer to the [training instructions](parsing/train/README.md).
