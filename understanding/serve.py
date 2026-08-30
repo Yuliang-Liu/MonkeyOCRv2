@@ -10,6 +10,8 @@ from pathlib import Path
 
 from vllm.entrypoints.cli.main import main as vllm_main
 
+from vllm_argv import build_vllm_argv
+
 UNDERSTANDING_DIR = Path(__file__).resolve().parent
 os.environ["PYTHONPATH"] = str(UNDERSTANDING_DIR) + os.pathsep + os.environ.get("PYTHONPATH", "")
 
@@ -61,12 +63,8 @@ def main() -> None:
     if not model_path.exists():
         raise SystemExit(f"Model path does not exist: {model_path}")
     ensure_port_available(args.host, args.port)
-    argv = ["vllm", "serve", str(model_path), "--tensor-parallel-size", str(args.tensor_parallel_size),
-            "--gpu-memory-utilization", str(args.gpu_memory_utilization), "--max-model-len", str(args.max_model_len),
-            "--max-num-seqs", str(args.max_num_seqs), "--max-num-batched-tokens", str(args.max_num_batched_tokens),
-            "--served-model-name", args.served_model_name, "--port", str(args.port), "--trust-remote-code"]
-    if args.host:
-        argv += ["--host", args.host]
+    args.model_path = str(model_path)
+    argv = build_vllm_argv(args)
     if args.extra_args:
         argv.extend(args.extra_args[1:] if args.extra_args[0] == "--" else args.extra_args)
     print("Running:", " ".join(argv))
