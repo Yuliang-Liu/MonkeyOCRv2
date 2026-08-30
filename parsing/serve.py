@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 import argparse
-import json
 import os
 import re
 import socket
@@ -10,6 +9,7 @@ from importlib.metadata import PackageNotFoundError, version
 from pathlib import Path
 
 from vllm.entrypoints.cli.main import main as vllm_main
+from vllm_argv import build_vllm_argv
 
 
 PARSING_DIR = Path(__file__).resolve().parent
@@ -40,49 +40,6 @@ def ensure_model_path(model_path: str):
     path = Path(model_path).expanduser()
     if not path.exists():
         raise SystemExit(f"Model path does not exist: {path}")
-
-
-def build_vllm_argv(args) -> list[str]:
-    """Build the vLLM command and add DFlash only when a draft is supplied."""
-    argv = [
-        "vllm",
-        "serve",
-        args.model_path,
-        "--tensor-parallel-size",
-        str(args.tensor_parallel_size),
-        "--gpu-memory-utilization",
-        str(args.gpu_memory_utilization),
-        "--max-model-len",
-        str(args.max_model_len),
-        "--max-num-batched-tokens",
-        str(args.max_num_batched_tokens),
-        "--served-model-name",
-        args.served_model_name,
-        "--port",
-        str(args.port),
-    ]
-    if args.max_num_seqs:
-        argv.extend(["--max-num-seqs", str(args.max_num_seqs)])
-    if args.host:
-        argv.extend(["--host", args.host])
-
-    if args.target_attention_backend:
-        argv.extend(["--attention-backend", args.target_attention_backend])
-
-    if args.draft_model:
-        draft_model = str(Path(args.draft_model).expanduser())
-        ensure_model_path(draft_model)
-        speculative_config = {
-            "method": "dflash",
-            "model": draft_model,
-            "num_speculative_tokens": args.dflash_num_speculative_tokens,
-        }
-        if args.dflash_attention_backend:
-            speculative_config["attention_backend"] = args.dflash_attention_backend
-        argv.extend(["--speculative-config", json.dumps(speculative_config)])
-
-    argv.append("--trust-remote-code")
-    return argv
 
 
 def ensure_port_available(host: str | None, port: int):

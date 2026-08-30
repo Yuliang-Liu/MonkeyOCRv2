@@ -5,12 +5,16 @@ on:
     branches: [main]
     paths:
       - "parsing/core_runner.py"
+      - "parsing/serve.py"
+      - "parsing/vllm_argv.py"
       - "parsing/tests/**"
       - "parsing/fastapi/**"
       - ".github/workflows/parsing-tests.yml"
   pull_request:
     paths:
       - "parsing/core_runner.py"
+      - "parsing/serve.py"
+      - "parsing/vllm_argv.py"
       - "parsing/tests/**"
       - "parsing/fastapi/**"
       - ".github/workflows/parsing-tests.yml"
