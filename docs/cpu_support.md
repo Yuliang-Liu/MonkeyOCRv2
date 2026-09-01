@@ -25,7 +25,7 @@ py -3.11 -m venv .venv
 
 ```bash
 .\.venv\Scripts\python.exe -m pip install --upgrade pip
-.\.venv\Scripts\python.exe -m pip install torch==2.5.1+cpu torchvision==0.20.1+cpu torchaudio==2.5.1+cpu --index-url https://download.pytorch.org/whl/cpu
+.\.venv\Scripts\python.exe -m pip install torch==2.5.1 torchvision==0.20.1 --index-url https://download.pytorch.org/whl/cpu
 .\.venv\Scripts\python.exe -m pip install -r parsing\requirements.txt
 .\.venv\Scripts\python.exe -m pip install transformers==4.57.1 accelerate==1.11.0 huggingface_hub qwen_vl_utils opencv-python einops
 ```
@@ -100,7 +100,7 @@ conda activate MonkeyOCRv2Parsing_CPU
 ### 3. Install dependencies
 
 ```bash
-pip install torch==2.5.1+cpu torchvision==0.20.1+cpu torchaudio==2.5.1+cpu --index-url https://download.pytorch.org/whl/cpu
+pip install torch==2.5.1+cpu torchvision==0.20.1 --index-url https://download.pytorch.org/whl/cpu
 pip install -r parsing/requirements.txt
 pip install transformers==4.57.1 accelerate==1.11.0 huggingface_hub qwen_vl_utils opencv-python einops
 ```
