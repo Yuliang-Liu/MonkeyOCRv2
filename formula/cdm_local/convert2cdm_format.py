@@ -4,7 +4,7 @@ from tqdm import tqdm
 import argparse
 
 def change_data_format(input_json, output_json):
-    with open(input_json,'r') as f:    
+    with open(input_json, 'r', encoding='utf-8') as f:
         all_datas = json.load(f)
 
     data_list = []
@@ -21,7 +21,7 @@ def change_data_format(input_json, output_json):
             }
             data_list.append(new_item)
             
-    with open(output_json, "w") as f:
+    with open(output_json, "w", encoding='utf-8') as f:
         f.write(json.dumps(data_list, indent=2))
         
 
