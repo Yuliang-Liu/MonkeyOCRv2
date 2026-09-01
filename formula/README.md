@@ -15,6 +15,33 @@ Following UniMERNet, we use the public fine-tuning and CDM evaluation pipeline.
 The UniMERNet-T (Swin) baseline uses a Swin encoder pretrained on 16M in-house
 data; this closed pre-training stage is not included in our release.
 
+## Target LaTeX form
+
+Training does not apply a global LaTeX canonicalizer.  The dataset loader
+passes UniMER-1M / HME100K annotation strings to the tokenizer as provided.
+The merge flow is described under [Datasets](#datasets) and follows
+[UniMERNet issue #14](https://github.com/opendatalab/UniMERNet/issues/14).
+There is no separate MonkeyOCR standard grammar.
+
+Primary evaluation uses
+[CDM](https://github.com/opendatalab/UniMERNet/tree/main/cdm), which renders
+prediction and ground truth and compares characters and layout.  It is not
+LaTeX string equality.  Equivalent forms such as `\frac{a}{b}` and
+`{a \over b}` are usually not penalized when they render the same.  ExpRate
+remains a render-level exact match.
+
+Post-processing is per-benchmark, not one shared rule:
+
+- UniMER-Test follows UniMERNet and applies lightweight whitespace
+  normalization to predictions and references.
+- MathWriting uses the official annotations plus the cleanup that benchmark
+  requires (outer math delimiters, CER tokenization, CDM rendering).
+- OmniDocBench table reproduction uses the official `*_formula.json` export.
+  See [Reproducing Table Metrics](#reproducing-table-metrics).
+
+LLM-as-a-Judge can compare formula semantics, but it is an external
+recommendation, not part of this repository's released evaluation.
+
 ## Models and Results
 
 Results are reported on OmniDocBench 1.6, MathWriting, and UniMER-Test.  CDM is
