@@ -4,7 +4,7 @@ import os
 
 if __name__ == '__main__':
     parser = ArgumentParser()
-    parser.add_argument('--type', '-t', type=str, default="huggingface") # huggingface or modelscope
+    parser.add_argument('--type', '-t', type=str, default="huggingface", choices=['huggingface', 'modelscope'])
     parser.add_argument('--name', '-n', type=str, default="MonkeyOCRv2-B-Parsing") # MonkeyOCRv2-S-Parsing
     args = parser.parse_args()
     script_dir = os.path.dirname(os.path.abspath(__file__))
