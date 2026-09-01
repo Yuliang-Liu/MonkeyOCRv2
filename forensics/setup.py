@@ -18,7 +18,7 @@ version_file = 'mmseg/version.py'
 
 
 def get_version():
-    with open(version_file) as f:
+    with open(version_file, encoding='utf-8') as f:
         exec(compile(f.read(), version_file, 'exec'))
     return locals()['__version__']
 
@@ -74,7 +74,7 @@ def parse_requirements(fname='requirements.txt', with_version=True):
             yield info
 
     def parse_require_file(fpath):
-        with open(fpath) as f:
+        with open(fpath, encoding='utf-8') as f:
             for line in f.readlines():
                 line = line.strip()
                 if line and not line.startswith('#'):
