@@ -100,7 +100,7 @@ conda activate MonkeyOCRv2Parsing_CPU
 ### 3. Install dependencies
 
 ```bash
-pip install torch==2.5.1+cpu torchvision==0.20.1 --index-url https://download.pytorch.org/whl/cpu
+pip install torch==2.5.1 torchvision==0.20.1 --index-url https://download.pytorch.org/whl/cpu
 pip install -r parsing/requirements.txt
 pip install transformers==4.57.1 accelerate==1.11.0 huggingface_hub qwen_vl_utils opencv-python einops
 ```
