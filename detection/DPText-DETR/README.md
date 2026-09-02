@@ -26,43 +26,43 @@ DPText-DETR (`*_poly_train_rotate_pos`).
 
 ### Total-Text
 
-| Method                        |        P |        R |        F |
-| ----------------------------- | -------: | -------: | -------: |
-| DPText-DETR (ResNet-50)       |     89.6 |     82.8 |     86.1 |
-| DPText-DETR + oCLIP           |     87.1 |     84.5 |     85.7 |
-| **DPText-DETR + MonkeyOCRv2** | **90.9** | **86.7** | **88.8** |
+| Method                        |    P |    R |        F |
+| ----------------------------- | ---: | ---: | -------: |
+| DPText-DETR (ResNet-50)       | 89.6 | 82.8 |     86.1 |
+| DPText-DETR + oCLIP           | 87.1 | 84.5 |     85.7 |
+| **DPText-DETR + MonkeyOCRv2** | 90.9 | 86.7 | **88.8** |
 
 ### CTW1500
 
-| Method                        |        P |        R |        F |
-| ----------------------------- | -------: | -------: | -------: |
-| DPText-DETR (ResNet-50)       | **89.7** |     82.1 |     85.7 |
-| DPText-DETR + oCLIP           |     86.3 |     82.7 |     84.5 |
-| **DPText-DETR + MonkeyOCRv2** |     89.6 | **88.1** | **88.9** |
+| Method                        |    P |    R |        F |
+| ----------------------------- | ---: | ---: | -------: |
+| DPText-DETR (ResNet-50)       | 89.7 | 82.1 |     85.7 |
+| DPText-DETR + oCLIP           | 86.3 | 82.7 |     84.5 |
+| **DPText-DETR + MonkeyOCRv2** | 89.6 | 88.1 | **88.9** |
 
 ### ICDAR19-ArT
 
-| Method                        |        P |        R |        F |
-| ----------------------------- | -------: | -------: | -------: |
-| DPText-DETR (ResNet-50)       |     84.3 |     67.5 |     75.0 |
-| DPText-DETR + oCLIP           |     75.1 |     62.0 |     67.9 |
-| **DPText-DETR + MonkeyOCRv2** | **85.8** | **71.7** | **78.1** |
+| Method                        |    P |    R |        F |
+| ----------------------------- | ---: | ---: | -------: |
+| DPText-DETR (ResNet-50)       | 84.3 | 67.5 |     75.0 |
+| DPText-DETR + oCLIP           | 75.1 | 62.0 |     67.9 |
+| **DPText-DETR + MonkeyOCRv2** | 85.8 | 71.7 | **78.1** |
 
 ### Rotated Total-Text
 
-| Method                        |        P |        R |        F |
-| ----------------------------- | -------: | -------: | -------: |
-| DPText-DETR (ResNet-50)       |     89.4 |     79.8 |     84.3 |
-| DPText-DETR + oCLIP           |     87.2 |     80.8 |     83.9 |
-| **DPText-DETR + MonkeyOCRv2** | **89.7** | **84.4** | **86.9** |
+| Method                        |    P |    R |        F |
+| ----------------------------- | ---: | ---: | -------: |
+| DPText-DETR (ResNet-50)       | 89.4 | 79.8 |     84.3 |
+| DPText-DETR + oCLIP           | 87.2 | 80.8 |     83.9 |
+| **DPText-DETR + MonkeyOCRv2** | 89.7 | 84.4 | **86.9** |
 
 ### Inverse-Text
 
-| Method                        |        P |        R |        F |
-| ----------------------------- | -------: | -------: | -------: |
-| DPText-DETR (ResNet-50)       | **92.1** |     81.3 |     86.4 |
-| DPText-DETR + oCLIP           |     90.2 |     82.1 |     85.9 |
-| **DPText-DETR + MonkeyOCRv2** |     91.8 | **85.4** | **88.5** |
+| Method                        |    P |    R |        F |
+| ----------------------------- | ---: | ---: | -------: |
+| DPText-DETR (ResNet-50)       | 92.1 | 81.3 |     86.4 |
+| DPText-DETR + oCLIP           | 90.2 | 82.1 |     85.9 |
+| **DPText-DETR + MonkeyOCRv2** | 91.8 | 85.4 | **88.5** |
 
 Rotated Total-Text and Inverse-Text are **test-only** benchmarks: they reuse
 the Total-Text model above and only change `DATASETS.TEST`.
@@ -76,10 +76,12 @@ Download the checkpoints from
 (ModelScope):
 
 ```bash
+# run from this add-on directory; ./DPText-DETR is the repository root created
+# by install.sh
 # HuggingFace
-hf download HB16888/MonkeyOCRv2_det_dptext --include "*.pth" --local-dir ./model_weight
+hf download HB16888/MonkeyOCRv2_det_dptext --include "*.pth" --local-dir ./DPText-DETR/model_weight
 # ModelScope
-modelscope download --model WangXinhan/MonkeyOCRv2_det_dptext --local_dir ./model_weight
+modelscope download --model WangXinhan/MonkeyOCRv2_det_dptext --local_dir ./DPText-DETR/model_weight
 ```
 
 ## Environment
@@ -92,16 +94,33 @@ safetensors 0.7.0. The oCLIP baseline additionally needs MMOCR 1.0.1
 
 ## Installation
 
-This directory is an add-on on top of the official DPText-DETR release. Run:
+This directory is an add-on on top of the official DPText-DETR release. Run it
+from this add-on directory (`MonkeyOCRv2/detection/DPText-DETR`):
 
 ```bash
 bash install.sh            # clones DPText-DETR into ./DPText-DETR and patches it
 ```
 
+`install.sh` creates a nested checkout, `./DPText-DETR`, which is the
+**DPText-DETR root** referred to throughout this README:
+
+```text
+MonkeyOCRv2/detection/DPText-DETR/     # this add-on directory
+├── install.sh
+├── configs/  patch/  tools/           # the add-on files, copied into ./DPText-DETR
+└── DPText-DETR/                       # <- DPText-DETR root, created by install.sh
+    ├── adet/  configs/  tools/
+    ├── pretrained/monkeyocrv2_as/     # MonkeyOCRv2-AS visual encoder
+    ├── ckpts/                         # ResNet-50 / oCLIP init weights
+    ├── model_weight/                  # released checkpoints
+    ├── datasets/                      # the benchmarks
+    └── output/                        # training / evaluation output
+```
+
 ## Pretrained Backbones
 
 ```bash
-cd DPText-DETR
+cd DPText-DETR             # the DPText-DETR root created by install.sh
 
 # MonkeyOCRv2-AS visual encoder (for the MonkeyOCRv2 rows)
 hf download zenosai/MonkeyOCRv2-AS --local-dir ./pretrained/monkeyocrv2_as
@@ -122,7 +141,7 @@ Download Total-Text (including rotated images), CTW1500 (including rotated
 images), ICDAR19-ArT (including rotated images), Inverse-Text, the polygon
 json files and the evaluation ground-truths from the official
 [DPText-DETR data preparation](https://github.com/ymy-k/DPText-DETR#data-preparation)
-links, and organize them as:
+links, and organize them under the DPText-DETR root as:
 
 ```text
 datasets/
@@ -154,7 +173,8 @@ datasets/
 
 ## Training
 
-All commands are run from the DPText-DETR root directory, on 8 GPUs.
+All training and evaluation commands are run from the DPText-DETR root
+(`detection/DPText-DETR/DPText-DETR`), on 8 GPUs.
 
 ```bash
 # ---------- Total-Text (also used for Rot.Total-Text and Inverse-Text) ----------

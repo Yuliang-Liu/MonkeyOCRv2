@@ -27,6 +27,7 @@ that SHA.
 | `understanding/infer.py` | `AutoModelForCausalLM`, `AutoProcessor` | S-Und, B-Und |
 | `parsing/cpu/core_runner.py` | `AutoModelForCausalLM`, `AutoProcessor` | S-Parsing, B-Parsing |
 | `parsing/serve.py` | vLLM `serve --trust-remote-code` | S-Parsing, B-Parsing, optional DFlash draft |
+| `understanding/serve.py` | vLLM `serve --trust-remote-code` | S-Und, B-Und |
 
 Recognition and detection training load the encoder checkpoints the same way
 (`trust_remote_code=True` on `AutoModel`).
@@ -35,6 +36,14 @@ Recognition and detection training load the encoder checkpoints the same way
 and registers `MonkeyOCRv2ForCausalLM` with vLLM. It still passes
 `--trust-remote-code` so Hugging Face can load the snapshot's custom config and
 processor modules.
+
+`understanding/serve.py` first imports this GitHub repo's
+`understanding/modeling/` adapters: vLLM 0.11.x loads
+`modeling_monkeyocrv2und_vllm_011.py`, and vLLM ≥ 0.25 loads
+`modeling_monkeyocrv2und_vllm.py`. It still passes `--trust-remote-code` so
+Hugging Face can load the Und snapshot's custom config and processor modules
+(listed under Document understanding below). Those local adapters are not the
+`.py` files that ship in the Hugging Face snapshot.
 
 ## Custom Python files
 

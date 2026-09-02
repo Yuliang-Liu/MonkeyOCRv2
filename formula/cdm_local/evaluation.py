@@ -99,7 +99,7 @@ def evaluation(data_root, user_id="test"):
         if not os.path.exists(os.path.join(gt_box_dir, 'bbox', basename+".jsonl")):
             gt_valid = False
         else:
-            with open(os.path.join(gt_box_dir, 'bbox', basename+".jsonl"), 'r') as f:
+            with open(os.path.join(gt_box_dir, 'bbox', basename+".jsonl"), 'r', encoding='utf-8') as f:
                 box_gt = []
                 for line in f:
                     info = json.loads(line)
@@ -113,7 +113,7 @@ def evaluation(data_root, user_id="test"):
         if not os.path.exists(os.path.join(pred_box_dir, 'bbox', basename+".jsonl")):
             pred_valid = False
         else:
-            with open(os.path.join(pred_box_dir, 'bbox', basename+".jsonl"), 'r') as f:
+            with open(os.path.join(pred_box_dir, 'bbox', basename+".jsonl"), 'r', encoding='utf-8') as f:
                 box_pred = []
                 for line in f:
                     info = json.loads(line)
@@ -238,7 +238,7 @@ def evaluation(data_root, user_id="test"):
         "details": metrics_per_img
     }
     metric_res_path = os.path.join(data_root, "metrics_res.json")
-    with open(metric_res_path, "w") as f:
+    with open(metric_res_path, "w", encoding='utf-8') as f:
         f.write(json.dumps(metrics_res, indent=2))
     return metrics_res, metric_res_path, match_vis_dir
 
@@ -254,7 +254,7 @@ if __name__ == '__main__':
     json_input, data_root, pool_num = args.input, args.output, args.pools
     temp_dir = os.path.join(data_root, "temp_dir")
     exp_name = os.path.basename(json_input).split('.')[0]
-    with open(json_input, "r") as f:
+    with open(json_input, "r", encoding='utf-8') as f:
         input_data = json.load(f)
     img_ids = []
     groundtruths = []

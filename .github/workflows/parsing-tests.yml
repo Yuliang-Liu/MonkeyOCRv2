@@ -6,11 +6,13 @@ on:
     paths:
       - "parsing/core_runner.py"
       - "parsing/tests/**"
+      - "parsing/fastapi/**"
       - ".github/workflows/parsing-tests.yml"
   pull_request:
     paths:
       - "parsing/core_runner.py"
       - "parsing/tests/**"
+      - "parsing/fastapi/**"
       - ".github/workflows/parsing-tests.yml"
 
 jobs:
@@ -23,6 +25,8 @@ jobs:
           python-version: "3.11"
           cache: pip
       - name: Install test dependencies
-        run: python -m pip install pytest pillow requests
+        run: python -m pip install pytest pillow requests fastapi python-multipart aiofiles
       - name: Run parsing regression tests
         run: python -m pytest parsing/tests -q
+      - name: Run FastAPI parse-zip contract tests
+        run: python -m pytest parsing/fastapi/test_parse_api.py -q
