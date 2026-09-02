@@ -13,7 +13,6 @@ import argparse
 import asyncio
 import base64
 import io
-import json
 import mimetypes
 import os
 import re
@@ -283,8 +282,8 @@ async def parse_document(
     Multipart inputs: ``files`` (repeatable) or ``file`` (single file), plus
     optional ``start_page_id`` (inclusive, zero-based) and ``end_page_id``
     (exclusive). The response is the ZIP binary itself with Content-Type
-    ``application/zip``; each document directory contains Markdown, native
-    ``jsons``/``all_results.json`` artifacts, and generated images.
+    ``application/zip``; each document directory contains Markdown, one
+    canonical ``{stem}.json`` layout artifact, and generated images.
     """
     uploads = [*(files or [])]
     if file is not None:
@@ -317,17 +316,24 @@ async def parse_document(
         for stem, (markdown, images, artifacts) in result.items():
             root = f"{stem}/"
             zf.writestr(root + f"{stem}.md", markdown)
+            json_written = False
             for rel, content in artifacts.items():
+                # Expose exactly one structured result per input document.
+                # The pipeline's per-document jsons/{stem}.json is the
+                # canonical source; all_results.json and auxiliary JSON
+                # files are intentionally omitted from the public ZIP.
+                rel_path = Path(rel)
+                if rel_path.suffix.lower() == ".json":
+                    if rel_path.parent.name == "jsons" and not json_written:
+                        zf.writestr(root + f"{stem}.json", content)
+                        json_written = True
+                    continue
                 zf.writestr(root + rel, content)
             for image_name, data_uri in images.items():
                 if ";base64," not in data_uri:
                     continue
                 encoded = data_uri.split(";base64,", 1)[1]
                 zf.writestr(root + image_name, base64.b64decode(encoded))
-            if not any("content_list.json" in rel for rel in artifacts):
-                zf.writestr(root + f"{stem}_content_list.json", json.dumps([
-                    {"type": "text", "text": markdown, "page_idx": 0, "bbox": [0, 0, 1000, 1000]}
-                ], ensure_ascii=False))
     return Response(content=archive.getvalue(), media_type="application/zip", headers={"Content-Disposition": "attachment; filename=monkeyocrv2_results.zip"})
 
 
