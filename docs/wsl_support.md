@@ -75,7 +75,7 @@ uv pip install vllm \
 ### 4. Install dependencies
 
 ```bash
-uv pip install timm==1.0.27 pypdfium2==5.10.1
+uv pip install -r parsing/requirements.txt
 ```
 
 ### 5. Download model weights
