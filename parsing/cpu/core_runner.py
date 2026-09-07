@@ -1075,23 +1075,19 @@ def detect_repeat_token(
     if cut_from_end > 0:
         predicted_tokens = predicted_tokens[:-cut_from_end]
 
-    for seq_len in range(1, window_size // 2 + 1):
+    if not predicted_tokens:
+        return False
+
+    max_seq_len = min(window_size // 2, len(predicted_tokens))
+    for seq_len in range(1, max_seq_len + 1):
         candidate_seq = predicted_tokens[-seq_len:]
         max_repeats = int(base_max_repeats * (1 + scaling_factor / seq_len))
 
-        repeat_count = 0
-        pos = len(predicted_tokens) - seq_len
-        if pos < 0:
-            continue
-
-        while pos >= 0:
-            if predicted_tokens[pos:pos + seq_len] == candidate_seq:
-                repeat_count += 1
-                pos -= seq_len
-            else:
-                break
-
-        if repeat_count > max_repeats:
+        # The detector only needs to know whether the repeat count exceeds
+        # the threshold. Checking the required suffix in one C-level call is
+        # equivalent to the backward scan, without work proportional to the
+        # full output length.
+        if predicted_tokens.endswith(candidate_seq * (max_repeats + 1)):
             return True
 
     return False
