@@ -15,6 +15,7 @@
 </div>
 
 ## News
+* `2026.09.07` 🚀 MonkeyOCRv2-Parsing is now supported by [RAGFlow](https://github.com/infiniflow/ragflow) as a PDF parser. Thanks to the RAGFlow team and community for the support!
 * `2026.08.22` 🖥️ We now support running [MonkeyOCRv2-Parsing](https://github.com/Yuliang-Liu/MonkeyOCRv2#document-parsing) on CPU. See the [CPU support instructions](https://github.com/Yuliang-Liu/MonkeyOCRv2/blob/main/docs/cpu_support.md).
 * `2026.08.17` ⚡ Releasing training and evaluation instructions for [Recognition](https://github.com/Yuliang-Liu/MonkeyOCRv2#scene-text-recognition), [Detection](https://github.com/Yuliang-Liu/MonkeyOCRv2#scene-text-detection), [Overlapping Text Segmentation](https://github.com/Yuliang-Liu/MonkeyOCRv2#overlapping-text-segmentation) and [Formula](https://github.com/Yuliang-Liu/MonkeyOCRv2#formula-recognition).
 * `2026.07.24` ⚡ We released [MonkeyOCRv2-B-Parsing-DFlash](https://huggingface.co/zenosai/MonkeyOCRv2-B-Parsing-DFlash), enabling vLLM serving with DFlash for up to 2× faster inference.
