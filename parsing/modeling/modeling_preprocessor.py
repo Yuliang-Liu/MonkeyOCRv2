@@ -115,7 +115,7 @@ _EMBEDDED_MODEL_SOURCES = [('models.block',
   '        grady = self.conv_opy(x)\n'
   '\n'
   '        x = (gradx ** 2 + grady ** 2) ** 0.5\n'
-  '        x = (x - x.min()) / (x.max() - x.min())\n'
+  '        x = (x - x.min()) / (x.max() - x.min() + 1e‑8)\n'
   '        x = F.pad(x, (1, 1, 1, 1))\n'
   '\n'
   '        x = torch.cat([im, x], dim=1)\n'

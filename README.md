@@ -299,6 +299,8 @@ cd parsing
 python serve.py -m ../model_weight/MonkeyOCRv2-B-Parsing -d ../model_weight/MonkeyOCRv2-B-Parsing-DFlash -p 8888
 # Serve without DFlash
 python serve.py -m ../model_weight/MonkeyOCRv2-B-Parsing  -p 8888
+# 2 GPUs
+python serve.py -m ../model_weight/MonkeyOCRv2-B-Parsing --tp 2 -p 8888
 # Show help messages
 python serve.py -h
 ```
@@ -399,7 +401,7 @@ Please refer to [`./recognition`](./recognition) for training and evaluation ins
 
 ### Scene Text Detection
 
-Please refer to [`./detection`](./detection) for training and evaluation instructions.
+Please refer to [`./detection`](./detection) for training and evaluation instructions. Detection is split into two trees: [`DPText-DETR/`](./detection/DPText-DETR/) and [`mmocr/`](./detection/mmocr/) (DBNet and PSENet).
 
 ### Overlapping Text Segmentation 
 
@@ -408,6 +410,10 @@ Please refer to [MOT](https://github.com/willpat1213/MOTS) for training and eval
 ### Formula Recognition
 
 Please refer to [`./formula`](./formula) for training and evaluation instructions.
+
+### Document Tampering Detection
+
+Please refer to [`./forensics/readme.md`](./forensics/readme.md) for installation, checkpoints, and evaluation.
 
 ## Visualization
 
