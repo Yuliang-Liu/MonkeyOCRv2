@@ -6,6 +6,7 @@ import time
 import shutil
 import argparse
 import inspect
+import copy
 import numpy as np
 import matplotlib.pyplot as plt
 
