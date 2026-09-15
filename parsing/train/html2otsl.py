@@ -24,6 +24,8 @@ from bs4 import BeautifulSoup
 
 
 _WS_BASE = 0xE000
+_ESC = "\ue100"
+_MAX_SPAN = 10000
 _CELL_RE = re.compile(
     r"(<(?:td|th)\b(?:[^>\"']|\"[^\"]*\"|'[^']*')*>)(.*?)(</(?:td|th)\s*>)",
     re.I | re.S,
@@ -66,20 +68,27 @@ def _cell_text(cell) -> str:
     return "".join(chr(ord(ch) - _WS_BASE) if _WS_BASE <= ord(ch) < _WS_BASE + 0x1000 else ch for ch in text)
 
 
-def html_to_otsl(source: str) -> str:
-    """Convert the first HTML ``table`` in *source* to an OTSL string.
+def _cell_content(cell) -> str:
+    """Return cell markup, preserving entities, whitespace and <br>.
 
-    Empty input or input without a table returns ``""``.  ``th`` is treated
-    the same as ``td``.  ``rowspan`` and ``colspan`` continuations use OTSL's
-    ``ucel``, ``xcel`` and ``lcel`` markers.
+    OTSL control-looking tags are escaped with a private marker so that they
+    cannot be interpreted as structural tokens by the reverse converter.
     """
-    if not source:
-        return ""
-    soup = BeautifulSoup(_protect_cell_whitespace(source), "html.parser")
-    table = soup.find("table")
-    if table is None:
-        return ""
+    for node in cell.find_all("style"):
+        node.decompose()
+    content = cell.decode_contents(formatter="html")
+    content = "".join(
+        chr(ord(ch) - _WS_BASE) if _WS_BASE <= ord(ch) < _WS_BASE + 0x1000 else ch
+        for ch in content
+    )
+    content = content.replace(_ESC, _ESC + _ESC)
+    for token in ("fcel", "ecel", "lcel", "ucel", "xcel", "nl"):
+        content = re.sub(rf"<{token}(?=>)", _ESC + token + ">", content, flags=re.I)
+    return content
 
+
+def _table_to_otsl(table) -> str:
+    """Convert one outermost table to OTSL (td and th are equivalent)."""
     # column -> pending vertical span.  A primary span emits <ucel>; a column
     # covered by the colspan part emits <xcel>.
     pending: Dict[int, Span] = {}
@@ -89,6 +98,9 @@ def html_to_otsl(source: str) -> str:
     # content of the containing cell, rather than as extra outer rows.
     rows = [row for row in table.find_all("tr") if row.find_parent("table") is table]
     for row in rows:
+        # Only direct td/th children are cells; non-standard wrappers/divs
+        # are ignored.  th is encoded exactly like td and reverse conversion
+        # intentionally emits td.
         cells = row.find_all(["td", "th"], recursive=False)
         row_tokens: List[str] = []
         col = 0
@@ -114,10 +126,10 @@ def html_to_otsl(source: str) -> str:
                 break
 
             cell = cells[cell_index]
-            text = _cell_text(cell)
+            text = _cell_content(cell)
             row_tokens.append(f"<fcel>{text}" if text else "<ecel>")
-            colspan = _positive_int(cell.get("colspan"))
-            rowspan = _positive_int(cell.get("rowspan"))
+            colspan = min(_positive_int(cell.get("colspan")), _MAX_SPAN)
+            rowspan = min(_positive_int(cell.get("rowspan")), _MAX_SPAN)
             if rowspan > 1:
                 pending[col] = Span(rowspan - 1, True)
             col += 1
@@ -132,6 +144,56 @@ def html_to_otsl(source: str) -> str:
         output.extend(row_tokens)
 
     return "".join(output)
+
+
+def html_to_otsl(source: str) -> str:
+    """Convert every outermost HTML table in *source* to OTSL.
+
+    Text outside tables is preserved. Nested tables remain serialized inside
+    their containing cell and are therefore preserved as cell content.
+    """
+    if not source:
+        return ""
+    fenced_table = re.compile(
+        r"(```html\s*)(<table\b.*?</table>)(\s*```)", flags=re.I | re.S
+    )
+    if fenced_table.search(source):
+        # Markdown explanations may mention literal <table> tags before the
+        # actual fenced table. Convert only the fenced table and retain an
+        # explicit boundary so reverse conversion can preserve surrounding text.
+        return fenced_table.sub(
+            lambda match: match.group(1)
+            + "<otsl>"
+            + html_to_otsl(match.group(2))
+            + "</otsl>"
+            + match.group(3),
+            source,
+        )
+    cdata = re.fullmatch(r"\s*<!\[CDATA\[(.*)\]\]>\s*", source, flags=re.I | re.S)
+    if cdata and re.search(r"<table\b", cdata.group(1), flags=re.I):
+        # Some datasets serialize the entire HTML table as CDATA. The wrapper
+        # is a transport artifact, so unwrap it to produce usable pure OTSL.
+        return html_to_otsl(cdata.group(1))
+    soup = BeautifulSoup(_protect_cell_whitespace(source), "html.parser")
+    tables = [
+        table
+        for table in soup.find_all("table")
+        if table.find_parent("table") is None
+        and any(row.find_parent("table") is table for row in table.find_all("tr"))
+    ]
+    if not tables:
+        return source
+    # Replace outermost tables with OTSL text nodes, preserving surrounding text.
+    replacements = {}
+    for index, table in enumerate(tables):
+        marker = f"__OTSL_TABLE_{index}_{id(table)}__"
+        replacements[marker] = _table_to_otsl(table)
+        table.replace_with(soup.new_string(marker))
+    rendered = str(soup)
+    pure_single_table = len(replacements) == 1 and rendered in replacements
+    for marker, value in replacements.items():
+        rendered = rendered.replace(marker, value if pure_single_table else f"<otsl>{value}</otsl>")
+    return rendered
 
 
 # Spelling used by the older scripts in this directory.
