@@ -887,6 +887,13 @@ def parse_end2end_output(text: str, image_size: tuple[int, int]) -> tuple[list[d
 def otsl_to_html(otsl_str):
     if not otsl_str or not otsl_str.strip():
         return "<table></table>"
+    if re.search(r'<otsl>', otsl_str, flags=re.I):
+        return re.sub(
+            r'<otsl>(.*?)</otsl>',
+            lambda match: otsl_to_html(match.group(1)),
+            otsl_str,
+            flags=re.I | re.S,
+        )
     
     rows_tokens = otsl_str.split("<nl>")
     if rows_tokens and rows_tokens[-1] == "":
@@ -900,7 +907,12 @@ def otsl_to_html(otsl_str):
                 grid.append([])
             continue
         
-        parts = re.findall(r'<([a-z]+)>(.*?)(?=<[a-z]+>|$)', row_str, flags=re.DOTALL)
+        # Only OTSL control tags are tokens. Other markup (e.g. <br> or a
+        # nested <table>) is cell content and must remain untouched.
+        parts = re.findall(
+            r'<(fcel|ecel|lcel|ucel|xcel|nl)>(.*?)(?=<(?:fcel|ecel|lcel|ucel|xcel|nl)>|\Z)',
+            row_str, flags=re.DOTALL | re.IGNORECASE,
+        )
         
         if r_idx >= len(grid):
             grid.append([])
@@ -918,7 +930,12 @@ def otsl_to_html(otsl_str):
                     break
             
             if tag == 'fcel' or tag == 'ecel':
-                text = content.strip() if tag == 'fcel' else ""
+                # Do not normalize whitespace. Decode the private OTSL escape
+                # used by html2otsl for literal control-looking tags.
+                text = content.replace("\ue100\ue100", "\ue100")
+                text = re.sub(r"\ue100(fcel|ecel|lcel|ucel|xcel|nl)>", r"<\1>", text, flags=re.I)
+                if tag == 'ecel':
+                    text = ""
                 grid[r_idx][col_idx] = {
                     'text': text,
                     'rowspan': 1,
@@ -994,7 +1011,21 @@ def otsl_to_html(otsl_str):
                     attrs.append(f'colspan="{cell["colspan"]}"')
                 
                 attr_str = ' ' + ' '.join(attrs) if attrs else ''
-                text = '<br>'.join(escape(part) for part in cell['text'].replace('\r\n', '\n').replace('\r', '\n').split('\n'))
+                # Cell content is already serialized HTML from html2otsl;
+                # preserve tags, entities and leading/trailing whitespace.
+                raw_text = cell['text'].replace('\r\n', '\n').replace('\r', '\n')
+                # Preserve embedded HTML tags/entities while escaping plain
+                # text, and represent OTSL text newlines as HTML line breaks.
+                chunks = re.split(r'(<[A-Za-z][^>]*>)', raw_text)
+                rendered = []
+                for i, chunk in enumerate(chunks):
+                    if i % 2:
+                        rendered.append('<br>' if re.fullmatch(r'<br\s*/?>', chunk, flags=re.I) else chunk)
+                    else:
+                        chunk = re.sub(r'&(?!(?:#\d+|#x[0-9a-fA-F]+|[A-Za-z][A-Za-z0-9]+);)', '&amp;', chunk)
+                        chunk = chunk.replace('<', '&lt;').replace('>', '&gt;').replace('"', '&quot;').replace("'", '&#x27;')
+                        rendered.append(chunk.replace('\n', '<br>'))
+                text = ''.join(rendered)
                 html_parts.append(f'<td{attr_str}>{text}</td>')
         html_parts.append('</tr>')
     
