@@ -341,7 +341,7 @@ python fastapi/main.py -h
 ```
 You can access the API documentation at http://localhost:8000/docs to explore available endpoints.
 
-`POST /parse` accepts a single multipart field `file` or a repeatable `files` field and returns `application/zip` (`monkeyocrv2_results.zip`), with one directory per document containing Markdown. See `/docs` for the remaining endpoints and request fields.
+`POST /parse` accepts a single multipart field `file` or a repeatable `files` field and returns `application/zip` (`monkeyocrv2_results.zip`), with one directory per document containing Markdown and one canonical `{stem}.json`. See `/docs` for the remaining endpoints and request fields.
 
 #### 5. Fine-tune
 You can fine-tune MonkeyOCRv2-Parsing on your own data. Please refer to the [training instructions](parsing/train/README.md).
