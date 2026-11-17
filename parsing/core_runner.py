@@ -184,6 +184,9 @@ class MonkeyOCRv2_ServerParsing:
             "model": self.model_name,
             "temperature": 0 if temperature is None else temperature,
             "messages": [{
+                "role": "system",
+                "content": "You are a helpful assistant.",
+            }, {
                 "role": "user",
                 "content": [
                     {"type": "image_url", "image_url": {"url": image_to_png_data_uri(image)}},

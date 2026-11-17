@@ -25,7 +25,7 @@ class _FakeVLLMHandler(BaseHTTPRequestHandler):
     def do_POST(self):  # noqa: N802 - stdlib handler API
         length = int(self.headers["Content-Length"])
         payload = json.loads(self.rfile.read(length))
-        content = payload["messages"][0]["content"]
+        content = next(message["content"] for message in payload["messages"] if message["role"] == "user")
         question = next(item["text"] for item in content if item["type"] == "text")
         with self.lock:
             self.requests.append(payload)
@@ -85,13 +85,20 @@ def test_fake_server_layout_and_recognition_flow():
         )["content"] == "recognized text"
 
         assert len(_FakeVLLMHandler.requests) == 4
+        assert all(
+            request["messages"][0] == {
+                "role": "system",
+                "content": "You are a helpful assistant.",
+            }
+            for request in _FakeVLLMHandler.requests
+        )
         layout_requests = [
             request for request in _FakeVLLMHandler.requests
-            if request["messages"][0]["content"][1]["text"] == ALL_PROMPT["LAYOUT"]
+            if request["messages"][1]["content"][1]["text"] == ALL_PROMPT["LAYOUT"]
         ]
         assert len(layout_requests) == 2
         assert all(request["max_tokens"] == 4096 for request in layout_requests)
-        image_url = layout_requests[0]["messages"][0]["content"][0]["image_url"]["url"]
+        image_url = layout_requests[0]["messages"][1]["content"][0]["image_url"]["url"]
         assert image_url.startswith("data:image/png;base64,")
         base64.b64decode(image_url.split(",", 1)[1])
     finally:
